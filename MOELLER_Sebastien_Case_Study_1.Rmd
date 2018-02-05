@@ -1,0 +1,105 @@
+---
+title: "Statistics in Action - case study 1"
+author: "Sebastien Moeller"
+output:
+  html_document:
+    fig_height: 3
+    fig_width: 8
+    number_sections: no
+    toc: no
+  pdf_document:
+    fig_height: 3
+    fig_width: 8
+    includes:
+      before_body: macros.tex
+    keep_tex: yes
+    number_sections: no
+    toc: no
+---
+
+
+# Introduction
+
+The dataset <ttt>dataMON810_2018.csv</ttt> consists of several measurements made during a subchronic toxicity study concerning the MON810 maize.
+
+Biochemical parameters reflecting most physiological functions were measured two times (week 5 and 14), in particular through serum and urine chemistry, and hematology. Organ weights were measured at week 14.
+
+The main objective of this study is to evaluate possible GMO effects on these parameters.
+
+# Single comparison
+
+#### __(Q1)__ 
+We consider the variable "CALCIUM".
+```{r}
+data <- read.csv('dataMON810_2018.csv')
+```
+
+###### a. Test if the mean level of calcium for period 2 is the same for males and females.  </br>**Hint:** plot first the data and justify the test(s) to use.
+```{r}
+
+```
+
+###### b. Test for the males if the mean level of calcium is the same for period 1 and period ### 2.
+```{r}
+
+```
+
+###### c. Test for the males if the mean level of calcium for period 2 is the same for the control group and the MON810 group.
+```{r}
+
+```
+
+###### d. What is the probability to detect a difference of 1 sd (one standard deviation) with only 10 animals per group? with 20 animal? How can we ensure to detect such difference with a probability of 80%?
+```{r}
+
+```
+  
+###### e. Test for the males if the mean levels of calcium for period 2 of the control group and the MON810 are equivalent. The equivalence limits will be defined using the 6 reference groups as *i)* one standard deviation of the 6 reference means, *ii)* two standard deviations of the 6 reference means.
+```{r}
+
+```
+   
+###### f. Summarize and comment these results.
+```{r}
+
+```
+
+#### __(Q2)__ Do the same analysis with the variable "DIRBILI" (direct bilirubin)
+
+
+
+
+# Multiple comparisons
+#### __(Q1)__
+Redo the three tests of the previous section (questions a., b. and c.) for now comparing  the means of all the quantitative variables (see the annex 5 of the ANSES report <ttt>BIOT2009sa0285Ra.pdf</ttt> to know the type of each variable). Store the results (i.e. all the p-values) in a dataframe with one variable per row and four columns (name of the variable + three p-values). 
+
+#### __(Q2)__
+For each of the three tests, adjust the p-values using the Bonferroni  and the Benjamini-Hochberg corrections. How can we interpret these results?
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
