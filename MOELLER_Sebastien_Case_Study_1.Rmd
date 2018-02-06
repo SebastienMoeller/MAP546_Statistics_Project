@@ -17,6 +17,11 @@ output:
     toc: no
 ---
 
+```{r}
+if (!require("pacman")) install.packages("pacman")
+
+pacman::p_load(tidyverse, ggplot2)
+```
 
 # Introduction
 
@@ -36,8 +41,55 @@ data <- read.csv('dataMON810_2018.csv')
 
 ###### a. Test if the mean level of calcium for period 2 is the same for males and females.  </br>**Hint:** plot first the data and justify the test(s) to use.
 ```{r}
+# Filter the data was want and remove NA from variable
+calciumSex <- data %>% filter(period == 2) %>% select(CALCIUM, sex) %>% na.omit
 
+# Find each sex's mean
+calciumMale <- calciumSex %>% filter(sex == 'M') %>% select(CALCIUM)
+calciumFemale <- calciumSex %>% filter(sex == 'F')
+calciumMean <- as.data.frame(rbind(mean(calciumMale$CALCIUM), mean(calciumFemale$CALCIUM)))
+calciumMean <- as.data.frame(cbind(calciumMean, rbind('M', 'F')))
+colnames(calciumMean) <- c('mean', 'sex')
+
+# Plot the data
+ggplot() + 
+  geom_point(data = calciumSex, aes(x = CALCIUM, y = sex, colour = sex)) + 
+  geom_point(data = calciumMean, aes(x = mean, y = sex, color = sex, size = 4, alpha = .5), show.legend = F)
+
+# Let's take a look at the means
+calciumMean
 ```
+
+Looking at the data we see that the $CALCIUM$ means between male and female are close. Computing a p-value here is of interest to see if they are significantly different.
+
+The hypotheses we are testing are as follow:
+$$
+H_0:\mu_{x} = \mu_{y} \space\text{ versus }\space H_1:\mu_{x} \neq\mu_{y}
+$$
+
+Assuming equal variances
+We can use the function `t.test` assuming first equal variances $(\sigma^2_x = \sigma^2_y)$
+```{r}
+alpha <- 0.05
+t.test(calciumMale$CALCIUM, calciumFemale$CALCIUM, conf.level = 1 - alpha, var.equal = TRUE)
+```
+
+
+t-test can be used when we assume equal variances $\sigma^2_{male} = \sigma^2_{female} $
+
+
+The type I error is the incorrect rejection of null hypothesis when it is true,
+The type II error is the failure to reject the null hypothesis when it is false.
+
+
+
+
+
+
+
+
+
+
 
 ###### b. Test for the males if the mean level of calcium is the same for period 1 and period ### 2.
 ```{r}
