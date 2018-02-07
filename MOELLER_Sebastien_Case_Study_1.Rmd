@@ -42,76 +42,184 @@ data <- read.csv('dataMON810_2018.csv')
 ###### a. Test if the mean level of calcium for period 2 is the same for males and females.  </br>**Hint:** plot first the data and justify the test(s) to use.
 ```{r}
 # Filter the data was want and remove NA from variable
-calciumSex <- data %>% filter(period == 2) %>% select(CALCIUM, sex) %>% na.omit
+calciumA <- data %>% filter(period == 2) %>% select(CALCIUM, sex) %>% na.omit
 
-# Find each sex's mean
-calciumMale <- calciumSex %>% filter(sex == 'M') %>% select(CALCIUM)
-calciumFemale <- calciumSex %>% filter(sex == 'F')
-calciumMean <- as.data.frame(rbind(mean(calciumMale$CALCIUM), mean(calciumFemale$CALCIUM)))
-calciumMean <- as.data.frame(cbind(calciumMean, rbind('M', 'F')))
-colnames(calciumMean) <- c('mean', 'sex')
+# Calculate the sample means
+calciumAMean <- aggregate(calciumA$CALCIUM  ~ calciumA$sex, FUN = 'mean')
+colnames(calciumAMean) <- c('sex', 'CALCIUM')
 
 # Plot the data
 ggplot() + 
-  geom_point(data = calciumSex, aes(x = CALCIUM, y = sex, colour = sex)) + 
-  geom_point(data = calciumMean, aes(x = mean, y = sex, color = sex, size = 4, alpha = .5), show.legend = F)
+  geom_point(data = calciumA, aes(x = CALCIUM, y = sex, colour = sex, alpha = 0.5), show.legend = FALSE) +
+  geom_point(data = calciumAMean, aes(x = CALCIUM, y = sex, color = sex, size = 4, alpha = 0.5), show.legend = FALSE)
 
 # Let's take a look at the means
-calciumMean
+calciumAMean
 ```
 
-Looking at the data we see that the $CALCIUM$ means between male and female are close. Computing a p-value here is of interest to see if they are significantly different.
+Looking at the data we see that the `$CALCIUM$` means between male and female are close. Computing a p-value here is of interest to see if they are significantly different.
 
 The hypotheses we are testing are as follow:
 $$
 H_0:\mu_{x} = \mu_{y} \space\text{ versus }\space H_1:\mu_{x} \neq\mu_{y}
 $$
 
-Assuming equal variances
-We can use the function `t.test` assuming first equal variances $(\sigma^2_x = \sigma^2_y)$
+###### Assuming equal variances
+We can use the function `t.test`. Let $x$ and $y$ denote $males$ and $females$ respectively.
+
+Assuming first equal variances $(\sigma^2_x = \sigma^2_y)$. We select a 5% significance level and run the test.
 ```{r}
 alpha <- 0.05
-t.test(calciumMale$CALCIUM, calciumFemale$CALCIUM, conf.level = 1 - alpha, var.equal = TRUE)
+t.test((calciumA %>% filter(sex == 'M'))$CALCIUM, (calciumA %>% filter(sex == 'F'))$CALCIUM, conf.level = 1 - alpha, var.equal = TRUE)
 ```
 
+Under the assumption that the two sexes have equal variances, we find a low `p-value < 2.2e-16` and thus __reject the null _hypothesis__ that $\mu_x = \mu_y$.
 
-t-test can be used when we assume equal variances $\sigma^2_{male} = \sigma^2_{female} $
+###### F-test for equal variances
+As stated, the previous t-test assumed that the two populations have equal variances. An F-test is used to test if the variances of two populations are equal. We will perform a two tailed test to see if our previous assumption was valid or incorrect.
 
-
-The type I error is the incorrect rejection of null hypothesis when it is true,
-The type II error is the failure to reject the null hypothesis when it is false.
-
-
-
-
-
-
-
-
-
-
-
-###### b. Test for the males if the mean level of calcium is the same for period 1 and period ### 2.
+For the F-test, our hypotheses are as follow:
+$H_0: \sigma_x = \sigma_y \space\text{versus}\space H_1:\sigma_x \neq \sigma_y$
 ```{r}
-
+var.test((calciumA %>% filter(sex == 'M'))$CALCIUM, (calciumA %>% filter(sex == 'F'))$CALCIUM, conf.level = 1 - alpha, alternative = 'two.sided')
 ```
 
-###### c. Test for the males if the mean level of calcium for period 2 is the same for the control group and the MON810 group.
+Our intuition was correct, the true ratio of variances $\frac{\sigma_x}{\sigma_y} \neq 1$. Thus we __reject the null hypothesis__.
+
+###### Assuming different variances
+Assuming equal variances between the two groups has been disputed.
 ```{r}
-
+aggregate(calciumA$CALCIUM  ~ calciumA$sex, FUN = 'sd')
 ```
 
-###### d. What is the probability to detect a difference of 1 sd (one standard deviation) with only 10 animals per group? with 20 animal? How can we ensure to detect such difference with a probability of 80%?
+The sample data of size 97 for males and 90 for females have very different standard deviations. It is therefore important to run the t-test without the assumption of equal variances.
+```{r}
+t.test((calciumA %>% filter(sex == 'M'))$CALCIUM, (calciumA %>% filter(sex == 'F'))$CALCIUM, conf.level = 1 - alpha, var.equal = FALSE)
+```
+
+Our new t-test also __rejects the null hypothesis__ that the two groups share the same mean displaying a `p-value = 3.455e-15`.
+
+###### Conclusion
+We can safely conclude that the two sexes do indeed have different means by the means of a t-test without equal variances.
+
+##### b. Test for the males if the mean level of calcium is the same for period 1 and period 2.
+```{r}
+# Filter the data was want and remove NA from variable
+calciumB <- data %>% filter(sex == 'M') %>% select(period, CALCIUM) %>% na.omit
+calciumB$period <- as.factor(calciumB$period)
+
+calciumBMean <- aggregate(calciumB$CALCIUM  ~ calciumB$period, FUN = 'mean')
+colnames(calciumBMean) <- c('period', 'CALCIUM')
+
+# Plot the data
+ggplot() + 
+  geom_point(data = calciumB, aes(x = CALCIUM, y = period, colour = period, alpha = 0.5), show.legend = FALSE) +
+  geom_point(data = calciumBMean, aes(x = CALCIUM, y = period, color = period, size = 4, alpha = 0.5), show.legend = FALSE)
+
+# Let's take a look at the means
+calciumBMean
+```
+
+###### F-test for equal variances
+As stated, the previous t-test assumed that the two populations have equal variances. An F-test is used to test if the variances of two populations are equal. We will perform a two tailed test to see if our previous assumption was valid or incorrect.
+
+For the F-test, our hypotheses are as follow:
+$H_0: \sigma_x = \sigma_y \space\text{versus}\space H_1:\sigma_x \neq \sigma_y$
+```{r}
+var.test((calciumB %>% filter(period == 1))$CALCIUM, (calciumB %>% filter(period == 2))$CALCIUM, conf.level = 1 - alpha, alternative = 'two.sided')
+```
+
+Our intuition was correct, the true ratio of variances $\frac{\sigma_x}{\sigma_y} \neq 1$. Thus we __reject the null hypothesis__.
+
+###### Assuming different variances
+Assuming equal variances between the two groups has been disputed.
+```{r}
+aggregate(calciumB$CALCIUM  ~ calciumB$period, FUN = 'sd')
+```
+
+```{r}
+dim(filter(calciumB, period == 1))[1]
+dim(filter(calciumB, period == 2))[1]
+```
+
+
+The sample data of size 98 for period 1 males, and 97 for period 2 males have very different standard deviations. It is therefore important to run the t-test without the assumption of equal variances.
+```{r}
+t.test((calciumB %>% filter(period == 1))$CALCIUM, (calciumB %>% filter(period == 2))$CALCIUM, conf.level = 1 - alpha, var.equal = FALSE)
+```
+
+Our new t-test also __rejects the null hypothesis__ that the two groups share the same mean displaying a `p-value = 3.113e-10`.
+
+###### Conclusion
+We can safely conclude that the male population between the two periods do indeed have different means.
+
+##### c. Test for the males if the mean level of calcium for period 2 is the same for the control group and the MON810 group.
+```{r}
+# Filter the data was want and remove NA from variable
+calciumC <- data %>% filter(sex == 'M') %>% filter(period == 2) %>% select(regimen, CALCIUM) %>% filter(regimen %in% c('MON810', 'control')) %>% na.omit
+calciumC$regimen <- as.factor(calciumC$regimen)
+
+calciumCMean <- aggregate(calciumC$CALCIUM  ~ calciumC$regimen, FUN = 'mean')
+colnames(calciumCMean) <- c('regimen', 'CALCIUM')
+
+# Plot the data
+ggplot() + 
+  geom_point(data = calciumC, aes(x = CALCIUM, y = regimen, colour = regimen, alpha = 0.5), show.legend = FALSE) +
+  geom_point(data = calciumCMean, aes(x = CALCIUM, y = regimen, color = regimen, size = 4, alpha = 0.5), show.legend = FALSE)
+
+# Let's take a look at the means
+calciumCMean
+```
+
+###### F-test for equal variances
+As stated, the previous t-test assumed that the two populations have equal variances. An F-test is used to test if the variances of two populations are equal. We will perform a two tailed test to see if our previous assumption was valid or incorrect.
+
+For the F-test, our hypotheses are as follow:
+$H_0: \sigma_x = \sigma_y \space\text{versus}\space H_1:\sigma_x \neq \sigma_y$
+```{r}
+var.test((calciumC %>% filter(regimen == 'control'))$CALCIUM, (calciumC %>% filter(regimen == 'MON810'))$CALCIUM, conf.level = 1 - alpha, alternative = 'two.sided')
+```
+
+Our F-test returns a `p-value = 0.03762` and thus __rejects the nullhypothesis__ that $\frac{\sigma_x}{\sigma_y} = 1$ at a 5% two tailed confidence level.
+
+###### Assuming different variances
+Assuming equal variances between the two groups has been disputed.
+```{r}
+aggregate(calciumC$CALCIUM  ~ calciumC$regimen, FUN = 'sd')
+```
+
+```{r}
+dim(filter(calciumC, regimen == 'control'))[1]
+dim(filter(calciumC, regimen == 'MON810'))[1]
+```
+
+
+Out control set consists of 20 observations and the MON810 consists of 19 observations and have different standard deviations. It is therefore important to run the t-test without the assumption of equal variances.
+```{r}
+t.test((calciumC %>% filter(regimen == 'control'))$CALCIUM, (calciumC %>% filter(regimen == 'MON810'))$CALCIUM, conf.level = 1 - alpha, var.equal = FALSE)
+```
+
+Our new t-test  __rejects the alternate hypothesis__ that the two groups do not share the same mean displaying a very significant `p-value = 0.4466`.
+
+###### Conclusion
+We conclude that the two groups do not have significantly different means.
+
+##### d. What is the probability to detect a difference of 1 sd (one standard deviation) with only 10 animals per group? with 20 animal? How can we ensure to detect such difference with a probability of 80%?
 ```{r}
 
 ```
   
-###### e. Test for the males if the mean levels of calcium for period 2 of the control group and the MON810 are equivalent. The equivalence limits will be defined using the 6 reference groups as *i)* one standard deviation of the 6 reference means, *ii)* two standard deviations of the 6 reference means.
+##### e. Test for the males if the mean levels of calcium for period 2 of the control group and the MON810 are equivalent. The equivalence limits will be defined using the 6 reference groups as 
 ```{r}
-
+calciumE <- data %>% filter(sex == 'M') %>% filter(period == 2) %>% select(regimen, CALCIUM) %>% na.omit
+calciumE$regimen <- as.factor(calciumE$regimen)
 ```
+
+*i)* one standard deviation of the 6 reference means, 
+*ii)* two standard deviations of the 6 reference means.
+
    
-###### f. Summarize and comment these results.
+##### f. Summarize and comment these results.
 ```{r}
 
 ```
