@@ -20,7 +20,7 @@ output:
 ```{r}
 if (!require("pacman")) install.packages("pacman")
 
-pacman::p_load(tidyverse, ggplot2)
+pacman::p_load(equivalence, tidyverse, ggplot2, dplyr)
 ```
 
 # Introduction
@@ -42,8 +42,7 @@ data <- read.csv('dataMON810_2018.csv')
 ###### a. Test if the mean level of calcium for period 2 is the same for males and females.  </br>**Hint:** plot first the data and justify the test(s) to use.
 ```{r}
 # Filter the data was want and remove NA from variable
-calciumA <- data %>% filter(period == 2) %>% select(CALCIUM, sex) %>% na.omit
-
+calciumA <- data %>% filter(period == 2) %>% dplyr::select(CALCIUM, sex) %>% na.omit
 # Calculate the sample means
 calciumAMean <- aggregate(calciumA$CALCIUM  ~ calciumA$sex, FUN = 'mean')
 colnames(calciumAMean) <- c('sex', 'CALCIUM')
@@ -105,7 +104,7 @@ We can safely conclude that the two sexes do indeed have different means by the 
 ##### b. Test for the males if the mean level of calcium is the same for period 1 and period 2.
 ```{r}
 # Filter the data was want and remove NA from variable
-calciumB <- data %>% filter(sex == 'M') %>% select(period, CALCIUM) %>% na.omit
+calciumB <- data %>% filter(sex == 'M') %>% dplyr::select(period, CALCIUM) %>% na.omit
 calciumB$period <- as.factor(calciumB$period)
 
 calciumBMean <- aggregate(calciumB$CALCIUM  ~ calciumB$period, FUN = 'mean')
@@ -156,7 +155,7 @@ We can safely conclude that the male population between the two periods do indee
 ##### c. Test for the males if the mean level of calcium for period 2 is the same for the control group and the MON810 group.
 ```{r}
 # Filter the data was want and remove NA from variable
-calciumC <- data %>% filter(sex == 'M') %>% filter(period == 2) %>% select(regimen, CALCIUM) %>% filter(regimen %in% c('MON810', 'control')) %>% na.omit
+calciumC <- data %>% filter(sex == 'M') %>% filter(period == 2) %>% dplyr::select(regimen, CALCIUM) %>% filter(regimen %in% c('MON810', 'control')) %>% na.omit
 calciumC$regimen <- as.factor(calciumC$regimen)
 
 calciumCMean <- aggregate(calciumC$CALCIUM  ~ calciumC$regimen, FUN = 'mean')
@@ -210,45 +209,27 @@ We conclude that the two groups do not have significantly different means.
 
 
 ##### d. What is the probability to detect a difference of 1 sd (one standard deviation) 
-```{r}
-sd(calciumC$CALCIUM)
-```
 
-A difference of 1 sd is given by a distance of 3.292922 units from the mean.
 
 *i)* with only 10 animals per group?
 As we only have two groups, namely: `control` and `MON810` with only 10 animals per group we have `df = 10*2-2`
-```{r}
-pt(q = -sd(calciumC$CALCIUM), df = 10*2-2)
-```
-
-The proability of observing 1 standard deviation from the mean with 10 animals per group is `0.20%`.
 
 *ii)* with 20 animals? 
 As we only have two groups, namely: `control` and `MON810` with only 20 animals per group we have `df = 20*2-2`
-```{r}
-pt(q = -sd(calciumC$CALCIUM), df = 20*2-2)
-```
-
-The proability of observing 1 standard deviation from the mean with 10 animals per group is `0.11%`.
 
 *iii)* How can we ensure to detect such difference with a probability of 80%?
-```{r}
-lower = qt(p = 0.025, df = dim(calciumC)[1]-2)
-lower
-upper = qt(p = 0.975, df = dim(calciumC)[1]-2)
 
-pt(q = lower, df = dim(calciumC)[1]-2)
+```{r}
+
 ```
-  
-  
-  
+
+
 --------------  
-  
+
 ##### e. Test for the males if the mean levels of calcium for period 2 of the `control` and `MON810` groups* are equivalent. The equivalence limits will be defined using the 6 reference groups as 
 ```{r}
 # Filter the relevant data
-calciumE <- data %>% filter(sex == 'M', period == 2, regimen != 'control', regimen != 'MON810') %>% select(regimen, CALCIUM) %>% na.omit
+calciumE <- data %>% filter(sex == 'M', period == 2, regimen != 'control', regimen != 'MON810') %>% dplyr::select(regimen, CALCIUM) %>% na.omit
 calciumE$regimen <- as.factor(calciumE$regimen)
 
 # Calculate the mean of each regiem
@@ -263,16 +244,19 @@ calciumEMean
 sd(calciumEMean$CALCIUM)
 
 # The probability of observing a deviation of this size
-pt(q = -sd(calciumEMean$CALCIUM), df = dim(calciumE)[1]-6)*2
+pt(q = -sd(calciumEMean$CALCIUM), df = dim(calciumE)[1]-6)*2*100
+
+# Calculate the p-value
+#tost((calciumC %>% filter(regimen == 'control'))[,2], (calciumC %>% filter(regimen == 'MON810'))[,2], alpha = 0.05, epsilon = sd(calciumEMean$CALCIUM))
 ```
 
-Our degrees of freedom is given by the number of observations minus the number of separate sets we calculated the mean from: `df = 58 - 6 = 52`
+Our degrees of freedom is given by the number of observations minus the number of separate sets we calculated the means from: `df = 58 - 6 = 52`
 The result shows that we have a probability of `42.30%` of observing one standard deviation of the 6 reference means given all observations.
 
 *ii)* two standard deviations of the 6 reference means.
 ```{r}
 # The probability of observing a deviation of twice this size
-pt(q = -2*sd(calciumEMean$CALCIUM), df = dim(calciumE)[1]-6)*2
+pt(q = -2*sd(calciumEMean$CALCIUM), df = dim(calciumE)[1]-6)*2*100
 ```
 
 Similarly, the probability of observing two standard deviations from the mean given our data is `11.75%` with `df = 52`
@@ -302,7 +286,7 @@ We consider the variable "DIRBILI".
 ###### a. Test if the mean level of DIRBILI for period 2 is the same for males and females.
 ```{r}
 # Filter the data was want and remove NA from variable
-dirbiliA <- data %>% filter(period == 2) %>% select(DIRBILI, sex) %>% na.omit
+dirbiliA <- data %>% filter(period == 2) %>% dplyr::select(DIRBILI, sex) %>% na.omit
 
 # Calculate the sample means
 dirbiliAMean <- aggregate(dirbiliA$DIRBILI  ~ dirbiliA$sex, FUN = 'mean')
@@ -314,9 +298,9 @@ ggplot() +
   geom_point(data = dirbiliAMean, aes(x = DIRBILI, y = sex, color = sex, size = 4, alpha = 0.5), show.legend = FALSE)
 ```
 
-This data seems to be discrete, having a value of 0.100 or 0.001.
+This data seems to be discrete, having a value of 0.100 or 0.001 in period 2.
 ```{r}
-summary(dirbiliA)
+unique(dirbiliA)
 ```
 
 ```{r}
@@ -324,11 +308,228 @@ summary(dirbiliA)
 dirbiliAMean
 ```
 
+We will make use of the Chi-Square test to test for independence of `gender` for `DIRBILI`. If gender is independent then the two sexes share the same mean, otherwise they have distinct means.
+
+For the Chi-square test to function in R we need to transform the data into a contingency table following the form:
+```{r}
+table(dirbiliA)
+```
+
+We set `correction = FALSE` as correction for continuity adjusts the formula for Pearson's chi-squared test. It subtracts 0.5 from the difference between each observed value and its expected value in a 2 × 2 contingency table. This reduces the chi-squared value obtained and thus increases its p-value. This formula is chiefly used when at least one cell of the table has an expected count smaller than 5. As Yates' correction also tends to overcorrect, and we know that we have significantly more than 5 counts per group we choose not to perform the correction.
+
+The Chi-square test is performed as follows:
+$\chi^2=\sum_{i = 1}^N\frac{(O_i-E_i)^2}{E_i}$
+
+The df is given by a function of the contingency table: `df = (nrow - 1)(ncol - 1) = (1)(1) = 1`
+
+$H_0: \mu_x\neq\mu_y\space\text{versus}\space H_1:\mu_x=\mu_y$
+```{r}
+chisq.test(table(dirbiliA), correct = FALSE)
+```
+
+Our test returns `p-value = 0.5814` indicating that the two sexes DIRBILI values are not independent and actually share a common mean.
+
+###### b. Test for the males if the mean level of DIRBILI is the same for period 1 and period 2.
+```{r}
+# Filter the data was want and remove NA from variable
+dirbiliB <- data %>% dplyr::select(DIRBILI, period) %>% na.omit
+dirbiliB$period <- as.factor(dirbiliB$period)
+
+# Calculate means by period
+dirbiliBMean <- aggregate(dirbiliB$DIRBILI ~ dirbiliB$period, FUN = 'mean')
+colnames(dirbiliBMean) <- c('period', 'DIRBILI')
+
+# Plot the data
+ggplot() +
+  geom_point(data = dirbiliB, aes(x = DIRBILI, y = period, colour = period, alpha = 0.5), show.legend = FALSE) +
+  geom_point(data = dirbiliBMean, aes(x = DIRBILI, y = period, color = period, size = 4, alpha = 0.5), show.legend = FALSE)
+```
+
+We immediately suspect that the two periods do not have independent means. Let us verify our suspicion with a Chi-square test with the same set-up as question a.
+```{r}
+table(dirbiliB)
+```
+
+This Chi-square test does not need correction at the Yates' correction is only available on 2x2 contingency tables. For our test the `df = (nrow - 1)(ncol - 1) = (2)(1) = 2` derived from the contingency table.
+```{r}
+chisq.test(table(dirbiliB))
+```
+
+We calculate `p-value = 2.2e-16`, and thus reject the null hypothesis. The two periods have distinct means.
+
+###### c. Test for the males if the mean level of DIRBILI for period 2 is the same for the control group and the MON810 group.
+```{r}
+# Filter the data
+dirbiliC <- data %>% filter(sex == 'M', period == 2) %>% dplyr::select(regimen, DIRBILI) %>% filter(regimen %in% c('MON810', 'control')) %>% na.omit
+
+# Calculate the means per regimen
+dirbiliCMean <- aggregate(dirbiliC$DIRBILI ~ dirbiliC$regimen, FUN = 'mean')
+colnames(dirbiliCMean) <- c('regimen', 'DIRBILI')
+
+# Plot the data
+ggplot() + 
+  geom_point(data = dirbiliC, aes(x = DIRBILI, y = regimen, colour = regimen, alpha = 0.5), show.legend = FALSE) +
+  geom_point(data = dirbiliCMean, aes(x = DIRBILI, y = regimen, color = regimen, size = 4, alpha = 0.5), show.legend = FALSE)
+```
+
+The plot seems to imply equal means between the `control` and `MON810` regimens.
+```{r}
+table(dirbiliC)[1:2,]
+```
+
+The contingency table shows that the two regiems have exactly the same frequency of each value. We expect a `p-value = 1`. As these are random variables, the true p-value is likely to be very close to 1
+```{r}
+chisq.test(table(dirbiliC)[1:2,])
+```
+
+With a `p-value = 1` we reject the alternative hypothesis. The two regimens `contol` and `MON810` share the same mean.
+
+###### d. What is the probability to detect a difference of 1 sd (one standard deviation)
+
+*i)* with only 10 animals per group? 
+
+*ii)* with 20 animal? 
+
+*iii)* How can we ensure to detect such difference with a probability of 80%?
+
+###### e. Test for the males if the mean levels of calcium for period 2 of the control group and the MON810 are equivalent. The equivalence limits will be defined using the 6 reference groups as
+```{r}
+# Filter the data
+dirbiliE <- data %>% filter(sex == 'M', period == 2, regimen != 'control', regimen != 'MON810') %>% dplyr::select(regimen, DIRBILI) %>% na.omit
+dirbiliE$regimen <- as.factor(dirbiliD$regimen)
+
+# Calculate the mean of each regiem
+dirbiliEMean <- aggregate(dirbiliE$DIRBILI  ~ dirbiliE$regimen, FUN = 'mean')
+colnames(dirbiliEMean) <- c('regimen', 'DIRBILI')
+dirbiliEMean
+```
+
+*i)* one standard deviation of the 6 reference means
+```{r}
+# The size of our confidence interval is given by a deviation from the mean in either direction of:
+sd(dirbiliEMean$DIRBILI)
+
+# The probability of observing a deviation of this size
+pt(q = -sd(dirbiliEMean$DIRBILI), df = dim(dirbiliE)[1]-dim(dirbiliEMean)[1])*2*100
+```
+
+We find that the probability of observing one standard deviation is 99.18%.
+
+*ii)* two standard deviations of the 6 reference means.
+```{r}
+# The probability of observing a deviation of twice this size
+pt(q = -2*sd(dirbiliEMean$DIRBILI), df = dim(dirbiliE)[1]-dim(dirbiliEMean)[1])*2*100
+```
+
+We find that the probability of observing two standard deviations is 98.35%.
+
+###### f. Summarize and comment these results.
+
+
+
+
+
+
+
 
 
 # Multiple comparisons
 #### __(Q1)__
-Redo the three tests of the previous section (questions a., b. and c.) for now comparing  the means of all the quantitative variables (see the annex 5 of the ANSES report <ttt>BIOT2009sa0285Ra.pdf</ttt> to know the type of each variable). Store the results (i.e. all the p-values) in a dataframe with one variable per row and four columns (name of the variable + three p-values). 
+Redo the three tests of the previous section (questions a., b. and c.) for now comparing  the means of all the quantitative variables (see the annex 5 of the ANSES report <ttt>BIOT2009sa0285Ra.pdf</ttt> to know the type of each variable).
+
+###### a. mean level for period 2 is the same for males and females. 
+```{r}
+questionA <- function(variable){
+  # Filter the data was want and remove NA from variable
+  dataNew <- data %>% filter(period == 2) %>% dplyr::select(sex, variable) %>% na.omit
+  
+  # F-test
+  pVal <- var.test((dataNew %>% filter(sex == 'M'))[,2], (dataNew %>% filter(sex == 'F'))[,2], conf.level = 1 - 0.05, alternative = 'two.sided')$p.val
+  
+  # Check F-test result
+  varEqual <- pVal > 0.05
+  
+  # Perform the t-test
+  t.test((dataNew %>% filter(sex == 'M'))[,2], (dataNew %>% filter(sex == 'F'))[,2], conf.level = 1 - 0.05, var.equal = varEqual)$p.val
+}
+```
+
+```{r}
+questionA('CALCIUM')
+```
+
+###### b. test for the males if the mean level is the same for period 1 and period 2.
+```{r}
+questionB <- function(variable){
+  # Filter the variable for males in period 1 and 2
+  dataNew <- data %>% filter(sex == 'M') %>% dplyr::select(period, variable) %>% na.omit
+  
+  # Calculate F-test's p-value
+  pVal <- var.test((dataNew %>% filter(period == 1))[,2], (dataNew %>% filter(period == 2))[,2], conf.level = 1 - 0.05, alternative = 'two.sided')$p.value
+  
+  # Check if the two periods have equal variances
+  varEqual <- pVal > 0.05
+  
+  # Perform the t-test
+  t.test((dataNew %>% filter(period == 1))[,2], (dataNew %>% filter(period == 2))[,2], conf.level = 1 - 0.05, var.equal = varEqual)$p.value
+}
+```
+
+```{r}
+questionB('CALCIUM')
+```
+
+###### c. test for the males if the mean level for period 2 is the same for the control group and the MON810 group.
+```{r}
+questionC <- function(variable){
+  # Filter the data was want and remove NA from variable
+  dataNew <- data %>% filter(sex == 'M') %>% filter(period == 2) %>% dplyr::select(regimen, variable) %>% filter(regimen %in% c('MON810', 'control')) %>% na.omit
+  
+  # Calculate F-test's p-value
+  pVal <- var.test((dataNew %>% filter(regimen == 'control'))[,2], (dataNew %>% filter(regimen == 'MON810'))[,2], conf.level = 1 - 0.05, alternative = 'two.sided')$p.val
+  
+  # Check if the two groups have the same variance
+  varEqual <- pVal > 0.05
+  
+  # Perform the t-test
+  t.test((dataNew %>% filter(regimen == 'control'))[,2], (dataNew %>% filter(regimen == 'MON810'))[,2], conf.level = 1 - 0.05, var.equal = varEqual)$p.val
+  
+}
+questionC('CALCIUM')
+```
+
+###### Merg data
+Store the results (i.e. all the p-values) in a dataframe with one variable per row and four columns (name of the variable + three p-values). 
+
+Non-quantitative variables: BILI, PROT, GLUCOSE, BLOOD, KETONE, UROBILI, GAMMAGT, TESTIS
+```{r}
+variable <- data  %>% dplyr::select(-GLUCOSE, -BLOOD, -BILI, -PROT ,-KETONE, -UROBILI, -GAMMAGT, -TESTIS, -id, -X, -regimen, -sex, -period) %>% colnames()
+
+results <- data.frame()
+for (i in 1:59){
+  print(cbind(i, variable[i], questionC(variable[i])))
+  #results <- rbind(results, cbind(variable[i], questionA(variable[i])))
+}
+results
+```
+
+
+```{r}
+questionA(variable[59])
+
+questionB(variable[20])
+questionB(variable[21])
+questionB(variable[52])
+questionB(variable[53])
+questionB(variable[54])
+questionB(variable[55])
+questionB(variable[56])
+questionB(variable[57])
+questionB(variable[58])
+questionB(variable[59])
+
+questionC(variable[59])
+```
 
 #### __(Q2)__
 For each of the three tests, adjust the p-values using the Bonferroni  and the Benjamini-Hochberg corrections. How can we interpret these results?
