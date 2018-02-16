@@ -506,7 +506,7 @@ questionA_ttest <- function(variable, alpha, m){
     varEqual <- pVal > alpha
     
     # Perform the t-test
-    return(t.test((dataNew %>% filter(sex == 'M'))[,2], (dataNew %>% filter(sex == 'F'))[,2], conf.level = 1 - alpha, var.equal = varEqual)$p.val/m)
+    return(t.test((dataNew %>% filter(sex == 'M'))[,2], (dataNew %>% filter(sex == 'F'))[,2], conf.level = 1 - alpha/m, var.equal = varEqual)$p.val)
   }
   else{
     return(NA)
@@ -520,7 +520,7 @@ questionA_wilcox <- function(variable, alpha, m){
   # Check if the the two groups have at least one observation
   if(dim((dataNew %>% filter(sex == 'M')))[1] > 0 && dim(dataNew %>% filter(sex == 'F'))[1] > 0){
     # Wilcox p-value
-    return(wilcox.test((dataNew %>% filter(sex == 'M'))[,2], (dataNew %>% filter(sex == 'F'))[,2], alternative = 'two.sided', conf.level=1-alpha)$p.val/m)
+    return(wilcox.test((dataNew %>% filter(sex == 'M'))[,2], (dataNew %>% filter(sex == 'F'))[,2], alternative = 'two.sided', conf.level=1-alpha/m)$p.val)
   }
   else{
     return(NA)
@@ -543,7 +543,7 @@ questionB_ttest <- function(variable, alpha, m){
     varEqual <- pVal > alpha
     
     # Perform the t-test
-    return(t.test((dataNew %>% filter(period == 1))[,2], (dataNew %>% filter(period == 2))[,2], conf.level = 1 - alpha, var.equal = varEqual)$p.value/m)
+    return(t.test((dataNew %>% filter(period == 1))[,2], (dataNew %>% filter(period == 2))[,2], conf.level = 1 - alpha/m, var.equal = varEqual)$p.value)
   }
   else{
     return(NA)
@@ -557,7 +557,7 @@ questionB_wilcox <- function(variable, alpha, m){
   # Check if the the two groups have at least one observation
   if(dim(dataNew %>% filter(period == 2))[1] > 0 && dim(dataNew %>% filter(period == 1))[1] > 0){
     # Wilcox p-value
-    return(wilcox.test((dataNew %>% filter(period == 1))[,2], (dataNew %>% filter(period == 2))[,2], alternative = 'two.sided', conf.level=1-alpha)$p.val/m)
+    return(wilcox.test((dataNew %>% filter(period == 1))[,2], (dataNew %>% filter(period == 2))[,2], alternative = 'two.sided', conf.level=1-alpha/m)$p.val)
   }
   else{
     return(NA)
@@ -580,7 +580,7 @@ questionC_ttest <- function(variable, alpha, m){
     varEqual <- pVal > alpha
     
     # Perform the t-test
-    return(t.test((dataNew %>% filter(regimen == 'control'))[,2], (dataNew %>% filter(regimen == 'MON810'))[,2], conf.level = 1 - alpha, var.equal = varEqual)$p.val/m)
+    return(t.test((dataNew %>% filter(regimen == 'control'))[,2], (dataNew %>% filter(regimen == 'MON810'))[,2], conf.level = 1 - alpha/m, var.equal = varEqual)$p.val)
   }
   else{
     return(NA)
@@ -594,7 +594,7 @@ questionC_wilcox <- function(variable, alpha, m){
   # Check if the the two groups have at least one observation
   if(dim((dataNew %>% filter(regimen == 'control')))[1] > 0 && dim(dataNew %>% filter(regimen == 'MON810'))[1] > 0){
     # Wilcox p-value
-    return(wilcox.test((dataNew %>% filter(regimen == 'control'))[,2], (dataNew %>% filter(regimen == 'MON810'))[,2], alternative = 'two.sided', conf.level=1-alpha)$p.val/m)
+    return(wilcox.test((dataNew %>% filter(regimen == 'control'))[,2], (dataNew %>% filter(regimen == 'MON810'))[,2], alternative = 'two.sided', conf.level=1-alpha/m)$p.val)
   }
   else{
     return(NA)
@@ -652,33 +652,59 @@ as.data.frame(cbind(variable, (ttest05 == wilcox05)[,2:4]))
 #### __(Q2)__
 For each of the three tests, adjust the p-values using the Bonferroni and the Benjamini-Hochberg corrections. How can we interpret these results?
 
-Bonferroni's correction derives from that fact that the probability of identifying at least one significant result due to chance increases as more hypotheses are tested. Therefore we divide each p-value by the number of tests being done per question, in this case we calculated `60`, resulting in a new results table:
+###### Bonferroni correction
+Bonferroni's correction derives from that fact that the probability of identifying at least one significant result due to chance increases as more hypotheses are tested. Therefore we divide each alpha by the number of tests calculated per question. The amounts differ by question due to the different amounts of NAs in the results from trying to test sets that are uncomparable due to nonexistant observations.
+
+$P(T_i\space\text{pass}|H_0) = \frac{\alpha}{m} $
+Where `m` is the number of tests calculated for a question.
+
 ```{r}
-wilcoxBonferroni <- data.frame()
-ttestBonferroni <- data.frame()
+wilcoxBonferroni <- as.data.frame(variable)
+wilcoxBonferroni$`a Bonferroni` <- p.adjust(wilcox$a, method = "bonferroni", n = 60-sum(is.na(wilcox$a)))
+wilcoxBonferroni$`b Bonferroni` <- p.adjust(wilcox$b, method = "bonferroni", n = 60-sum(is.na(wilcox$b)))
+wilcoxBonferroni$`c Bonferroni` <- p.adjust(wilcox$c, method = "bonferroni", n = 60-sum(is.na(wilcox$c)))
 
-for (i in 1:length(variable)){
-  # Wilcox results
-  wilcoxBonferroni <- rbind(wilcoxBonferroni, cbind(variable[i], questionA_wilcox(variable[i], 0.05, 60-sum(is.na(wilcox$a))), questionB_wilcox(variable[i], 0.05, 60-sum(is.na(wilcox$b))), questionC_wilcox(variable[i], 0.05, 60-sum(is.na(wilcox$c)))))
-  # t-test results
-  ttestBonferroni <- rbind(ttestBonferroni, cbind(variable[i], questionA_ttest(variable[i], 0.05, 60-sum(is.na(ttest$a))), questionB_ttest(variable[i], 0.05, 60-sum(is.na(ttest$b))), questionC_ttest(variable[i], 0.05, 60-sum(is.na(ttest$c)))))
-}
-
-colnames(wilcoxBonferroni) <- c('variable', 'a Bonferroni', 'b Bonferroni', 'c Bonferroni')
-colnames(wilcoxBonferroni) <- c('variable', 'a Bonferroni', 'b Bonferroni', 'c Bonferroni')
-
-wilcoxBonferroni
+ttestBonferroni <- as.data.frame(variable)
+ttestBonferroni$`a Bonferroni` <- p.adjust(ttest$a, method = "bonferroni", n = 60-sum(is.na(ttest$a)))
+ttestBonferroni$`b Bonferroni` <- p.adjust(ttest$b, method = "bonferroni", n = 60-sum(is.na(ttest$b)))
+ttestBonferroni$`c Bonferroni` <- p.adjust(ttest$c, method = "bonferroni", n = 60-sum(is.na(ttest$c)))
 ```
+
+```{r}
+
+```
+
 
 Let us see which p-values are below `0.05`.
 ```{r}
-bonWilcox05 <- as.data.frame(cbind(variable, bonWilcox[,2:4] < 0.05))
-bonWilcox05
+wilcoxBonferroni05 <- as.data.frame(cbind(variable, wilcoxBonferroni[,2:4] < 0.05))
+wilcoxBonferroni05
 ```
 
 With these adjustments we find that all our p-values are below `0.05` thus the __null hypothesis is rejected__ for all tests.
 
+###### Benjamini-Hochberg correction
+```{r}
+wilcoxBH <- as.data.frame(variable)
+wilcoxBH$`a Ben-Hoch` <- p.adjust(wilcox$a, method = "BH", n = 60-sum(is.na(wilcox$a)))
+wilcoxBH$`b Ben-Hoch` <- p.adjust(wilcox$b, method = "BH", n = 60-sum(is.na(wilcox$b)))
+wilcoxBH$`c Ben-Hoch` <- p.adjust(wilcox$c, method = "BH", n = 60-sum(is.na(wilcox$c)))
 
+ttestBH <- as.data.frame(variable)
+ttestBH$`a Ben-Hoch` <- p.adjust(ttest$a, method = "BH", n = 60-sum(is.na(ttest$a)))
+ttestBH$`b Ben-Hoch` <- p.adjust(ttest$b, method = "BH", n = 60-sum(is.na(ttest$b)))
+ttestBH$`c Ben-Hoch` <- p.adjust(ttest$c, method = "BH", n = 60-sum(is.na(ttest$c)))
+```
+
+```{r}
+wilcoxBH05 <- as.data.frame(cbind(variable, wilcoxBH[,2:4] < 0.05))
+wilcoxBH05
+```
+
+###### Bonferroni vs Benjamini & Hochberg
+```{r}
+as.data.frame(cbind(variable, wilcoxBonferroni05[,2:4] == wilcoxBH05[,2:4]))
+```
 
 
 
