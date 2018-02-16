@@ -396,31 +396,26 @@ test$p.value &gt; 0.05</code></pre>
 </div>
 <div id="d.-what-is-the-probability-to-detect-a-difference-of-1-sd-one-standard-deviation" class="section level5">
 <h5>d. What is the probability to detect a difference of 1 sd (one standard deviation)</h5>
-<p><em>i)</em> with only 10 animals per group?</p>
-<pre class="r"><code>alpha &lt;- 0.05
-delta &lt;- 1
-x.sd &lt;- 1
-df &lt;- 18
-dt &lt;- delta / x.sd / sqrt(1/10 + 1/10)
-
-1 - pt(qt(1-alpha/2, df)-dt, df) + pt(qt(alpha/2, df) - dt, df)</code></pre>
-<pre><code>## [1] 0.5532004</code></pre>
-<p>We can check this by running the code in the function pwr.t.test</p>
-<pre class="r"><code>pwr.t.test(n=10, d=1, type=&quot;two.sample&quot;, alternative=&quot;two.sided&quot;, sig.level=alpha)[[4]]</code></pre>
-<p>So the probability of detecting 1 sd difference with only 10 animals per group is 55%</p>
+<p><em>i)</em> with only 10 animals per group? We can check this by running the code in the function pwr.t.test</p>
+<pre class="r"><code>pwr.t.test(n = 10, d = 1, type = &quot;two.sample&quot;, alternative = &quot;two.sided&quot;, sig.level = alpha)[[4]]*100</code></pre>
+<pre><code>## [1] 56.20066</code></pre>
+<p>So the probability of detecting 1 sd difference with only 10 animals per group is 56.20%</p>
 <p><em>ii)</em> with 20 animals? Next we try the same but change the sample size to 20 animals per group</p>
-<pre class="r"><code>alpha &lt;- 0.05
-delta &lt;- 1 
-x.sd &lt;- 1
-df &lt;- 38
-dt &lt;- delta/x.sd/sqrt(1/20+1/20)
-(1-pt(qt(1-alpha/2,df)-dt,df) + pt(qt(alpha/2,df)-dt,df))*100</code></pre>
-<pre><code>## [1] 86.88573</code></pre>
-<p>We can check this by running the code in the function pwr.t.test.</p>
-<pre class="r"><code>pwr.t.test(n=20, d=1, type=&quot;two.sample&quot;, alternative=&quot;two.sided&quot;, sig.level=alpha)[[4]]*100</code></pre>
-<p>The probability of detecting 1 sd difference with only 20 animals per group is 86.89%</p>
+<pre class="r"><code>pwr.t.test(n = 20, d = 1, type = &quot;two.sample&quot;, alternative = &quot;two.sided&quot;, sig.level = alpha)[[4]]*100</code></pre>
+<pre><code>## [1] 86.8953</code></pre>
+<p>The probability of detecting 1 sd difference with only 20 animals per group is 86.90%</p>
 <p><em>iii)</em> How can we ensure to detect such difference with a probability of 80%? For this we fill in the power function and set</p>
-<pre class="r"><code>pwr.t.test(power=0.8, d=dt, sig.level=alpha) </code></pre>
+<pre class="r"><code>pwr.t.test(power = 0.8, d = 1, sig.level = alpha)</code></pre>
+<pre><code>## 
+##      Two-sample t test power calculation 
+## 
+##               n = 16.71472
+##               d = 1
+##       sig.level = 0.05
+##           power = 0.8
+##     alternative = two.sided
+## 
+## NOTE: n is number in *each* group</code></pre>
 <p>Only by having at least <code>n = 17</code> observations can we detect a difference of 1 standard deviation with at least an 80% accuracy.</p>
 </div>
 <div id="e.-test-for-the-males-if-the-mean-levels-of-calcium-for-period-2-of-the-control-and-mon810-groups-are-equivalent.-the-equivalence-limits-will-be-defined-using-the-6-reference-groups-as" class="section level5">
@@ -447,6 +442,8 @@ sd(calciumEMean$CALCIUM)</code></pre>
 <pre class="r"><code># The probability of observing a deviation of this size
 pt(q = -sd(calciumEMean$CALCIUM), df = dim(calciumE)[1]-6)*2*100</code></pre>
 <pre><code>## [1] 42.96782</code></pre>
+<p>The result shows that we have a probability of <code>42.30%</code> of observing one standard deviation of the 6 reference means given all observations.</p>
+<p>Our degrees of freedom is given by the number of observations minus the number of separate sets we calculated the means from: <code>df = 58 - 6 = 52</code></p>
 <pre class="r"><code># Calculate the p-value
 test &lt;- tost((calciumC %&gt;% filter(regimen == 'control'))[,2], (calciumC %&gt;% filter(regimen == 'MON810'))[,2], alpha = 0.05, epsilon = sd(calciumEMean$CALCIUM))
 test</code></pre>
@@ -466,11 +463,12 @@ test</code></pre>
 ## TOST p-value: 0.5117705</code></pre>
 <pre class="r"><code>test$tost.p.value</code></pre>
 <pre><code>## [1] 0.5117705</code></pre>
-<p>Our degrees of freedom is given by the number of observations minus the number of separate sets we calculated the means from: <code>df = 58 - 6 = 52</code> The result shows that we have a probability of <code>42.30%</code> of observing one standard deviation of the 6 reference means given all observations.</p>
+<p>The tost test can be interpreted as a regular two sided test checking if the means are within a range of <span class="math inline">\(\pm\space\epsilon\)</span>. As the p-value is so high, we <strong>reject the alternate hypothesis</strong> that the two sets are not equivalent. Indeed, under these conditions we argue that they <strong>are equivalent</strong>.</p>
 <p><em>ii)</em> two standard deviations of the 6 reference means.</p>
 <pre class="r"><code># The probability of observing a deviation of twice this size
 pt(q = -2*sd(calciumEMean$CALCIUM), df = dim(calciumE)[1]-6)*2*100</code></pre>
 <pre><code>## [1] 11.74674</code></pre>
+<p>Similarly, the probability of observing two standard deviations from the mean given our data is <code>11.75%</code> with <code>df = 52</code></p>
 <pre class="r"><code># Calculate the p-value
 test &lt;- tost((calciumC %&gt;% filter(regimen == 'control'))[,2], (calciumC %&gt;% filter(regimen == 'MON810'))[,2], alpha = 0.05, epsilon = 2*sd(calciumEMean$CALCIUM))
 test</code></pre>
@@ -490,7 +488,7 @@ test</code></pre>
 ## TOST p-value: 0.2410851</code></pre>
 <pre class="r"><code>test$tost.p.value</code></pre>
 <pre><code>## [1] 0.2410851</code></pre>
-<p>Similarly, the probability of observing two standard deviations from the mean given our data is <code>11.75%</code> with <code>df = 52</code></p>
+<p>The tost test can be interpreted as a regular two sided test checking if the means are within a range of <span class="math inline">\(\pm\space\epsilon\)</span>. As the p-value is so high, we <strong>reject the alternate hypothesis</strong> that the two sets are not equivalent. Indeed, under these conditions we argue that they <strong>are equivalent</strong>.</p>
 </div>
 <div id="f.-summarize-and-comment-these-results." class="section level5">
 <h5>f. Summarize and comment these results.</h5>
@@ -515,6 +513,10 @@ test</code></pre>
 <li>The wilcox test rejected the alternate hypothesis, arguing that the means are shared between the two sets <span class="math inline">\(\mu_x=\mu_y\)</span></li>
 </ul>
 <p>We switched from performing the t-test to the wilcox test due to the distribution of our sample data. The histogram did not appear to follow a normal distribution and thus we dropped the assumption of normality by using the wilcox test instead.</p>
+<ol start="4" style="list-style-type: lower-alpha">
+<li><p>We have a 56.20% power with <code>n = 10</code> observations We have a 86.89% power with <code>n = 20</code> observations. Only by having at least <code>n = 17</code> observations can we detect a difference of 1 standard deviation with at least an 80% accuracy.</p></li>
+<li><p>the two means <strong>are equivalent</strong> at 1 standard deviation the two means <strong>are equivalent</strong> at 2 standard deviations</p></li>
+</ol>
 </div>
 </div>
 <div id="q2-do-the-same-analysis-with-the-variable-dirbili-direct-bilirubin" class="section level4">
@@ -684,10 +686,43 @@ ggplot() +
 <p>As we are testing two proportions we will need the pwr.2p.test to compute the power.</p>
 <p><em>i)</em> with only 10 animals per group?</p>
 <pre class="r"><code>pwr.2p.test(n = 10, h = 1, alternative = &quot;two.sided&quot;, sig.level = 0.05)</code></pre>
+<pre><code>## 
+##      Difference of proportion power calculation for binomial distribution (arcsine transformation) 
+## 
+##               h = 1
+##               n = 10
+##       sig.level = 0.05
+##           power = 0.6087795
+##     alternative = two.sided
+## 
+## NOTE: same sample sizes</code></pre>
+<p>We have a 60.88% power with <code>n = 10</code> observations.</p>
 <p><em>ii)</em> with 20 animal?</p>
 <pre class="r"><code>pwr.2p.test(n = 20, h = 1, alternative = &quot;two.sided&quot;, sig.level = 0.05)</code></pre>
+<pre><code>## 
+##      Difference of proportion power calculation for binomial distribution (arcsine transformation) 
+## 
+##               h = 1
+##               n = 20
+##       sig.level = 0.05
+##           power = 0.8853791
+##     alternative = two.sided
+## 
+## NOTE: same sample sizes</code></pre>
+<p>We have a 88.54% power with <code>n = 20</code> observations.</p>
 <p><em>iii)</em> How can we ensure to detect such difference with a probability of 80%?</p>
 <pre class="r"><code>pwr.2p.test(power = 0.80, h = 1, alternative = &quot;two.sided&quot;, sig.level = 0.05)</code></pre>
+<pre><code>## 
+##      Difference of proportion power calculation for binomial distribution (arcsine transformation) 
+## 
+##               h = 1
+##               n = 15.69774
+##       sig.level = 0.05
+##           power = 0.8
+##     alternative = two.sided
+## 
+## NOTE: same sample sizes</code></pre>
+<p>Only by having at least <code>n = 16</code> observations can we detect a difference of 1 standard deviation with at least an 80% accuracy.</p>
 </div>
 <div id="e.-test-for-the-males-if-the-mean-levels-of-calcium-for-period-2-of-the-control-group-and-the-mon810-are-equivalent.-the-equivalence-limits-will-be-defined-using-the-6-reference-groups-as" class="section level5">
 <h5>e. Test for the males if the mean levels of calcium for period 2 of the control group and the MON810 are equivalent. The equivalence limits will be defined using the 6 reference groups as</h5>
@@ -734,7 +769,7 @@ test</code></pre>
 <pre class="r"><code># p-value
 test$tost.p.value</code></pre>
 <pre><code>## [1] 0.2120141</code></pre>
-<p>The output can be interpreted similarly to a standard hypothesis test, therefore from the p-value we conclude that the two means are not equivalent, we <strong>reject the alternative hypothesis</strong>.</p>
+<p>The output can be interpreted similarly to a standard hypothesis test, therefore from the p-value we conclude that the two means <strong>are equivalent</strong>, we <strong>reject the alternative hypothesis</strong>.</p>
 <p><em>ii)</em> two standard deviations of the 6 reference means.</p>
 <pre class="r"><code># The probability of observing a deviation of twice this size
 pt(q = -2*sd(dirbiliEMean$DIRBILI), df = dim(dirbiliE)[1]-dim(dirbiliEMean)[1])*2*100</code></pre>
@@ -760,7 +795,7 @@ test</code></pre>
 <pre class="r"><code># p-value
 test$tost.p.value</code></pre>
 <pre><code>## [1] 0.05714879</code></pre>
-<p>The output can be interpreted similarly to a standard hypothesis test, therefore from the p-value &gt; 0.05 we conclude that the two means are not equivalent, we <strong>reject the alternative hypothesis</strong>.</p>
+<p>The output can be interpreted similarly to a standard hypothesis test, therefore from the p-value &gt; 0.05 we <strong>reject the alternative hypothesis</strong> and argue that the two means <strong>are equivalent</strong>.</p>
 </div>
 <div id="f.-summarize-and-comment-these-results.-1" class="section level5">
 <h5>f. Summarize and comment these results.</h5>
@@ -784,6 +819,10 @@ test$tost.p.value</code></pre>
 <ul>
 <li>The wilcox test rejected the <strong>alternate hypothesis</strong>, arguing that the means are shared between the two sets <span class="math inline">\(\mu_x=\mu_y\)</span></li>
 </ul>
+<ol start="4" style="list-style-type: lower-alpha">
+<li><p>What is the probability to detect a difference of 1 sd (one standard deviation) We have a 60.88% power with <code>n = 10</code> observations. We have a 88.54% power with <code>n = 20</code> observations. Only by having at least <code>n = 16</code> observations can we detect a difference of 1 standard deviation with at least an 80% accuracy.</p></li>
+<li><p>the two means <strong>are equivalent</strong> at 1 standard deviation the two means <strong>are equivalent</strong> at 2 standard deviations</p></li>
+</ol>
 </div>
 </div>
 </div>

@@ -243,42 +243,23 @@ We conclude that the two groups do not have significantly different means. We we
 ##### d. What is the probability to detect a difference of 1 sd (one standard deviation) 
 
 *i)* with only 10 animals per group?
-```{r}
-alpha <- 0.05
-delta <- 1
-x.sd <- 1
-df <- 18
-dt <- delta / x.sd / sqrt(1/10 + 1/10)
-
-1 - pt(qt(1-alpha/2, df)-dt, df) + pt(qt(alpha/2, df) - dt, df)
-```
-
 We can check this by running the code in the function pwr.t.test
-```{r, eval = FALSE}
-pwr.t.test(n=10, d=1, type="two.sample", alternative="two.sided", sig.level=alpha)[[4]]
+```{r}
+pwr.t.test(n = 10, d = 1, type = "two.sample", alternative = "two.sided", sig.level = alpha)[[4]]*100
 ```
-So the probability of detecting 1 sd difference with only 10 animals per group is 55%
+So the probability of detecting 1 sd difference with only 10 animals per group is 56.20%
 
 *ii)* with 20 animals? 
 Next we try the same but change the sample size to 20 animals per group
 ```{r}
-alpha <- 0.05
-delta <- 1 
-x.sd <- 1
-df <- 38
-dt <- delta/x.sd/sqrt(1/20+1/20)
-(1-pt(qt(1-alpha/2,df)-dt,df) + pt(qt(alpha/2,df)-dt,df))*100
+pwr.t.test(n = 20, d = 1, type = "two.sample", alternative = "two.sided", sig.level = alpha)[[4]]*100
 ```
-We can check this by running the code in the function pwr.t.test.
-```{r, eval = FALSE}
-pwr.t.test(n=20, d=1, type="two.sample", alternative="two.sided", sig.level=alpha)[[4]]*100
-```
-The probability of detecting 1 sd difference with only 20 animals per group is 86.89%
+The probability of detecting 1 sd difference with only 20 animals per group is 86.90%
 
 *iii)* How can we ensure to detect such difference with a probability of 80%?
 For this we fill in the power function and set 
-```{r, eval = FALSE}
-pwr.t.test(power=0.8, d=dt, sig.level=alpha) 
+```{r}
+pwr.t.test(power = 0.8, d = 1, sig.level = alpha)
 ```
 Only by having at least `n = 17` observations can we detect a difference of 1 standard deviation with at least an 80% accuracy.
 
@@ -301,28 +282,36 @@ sd(calciumEMean$CALCIUM)
 
 # The probability of observing a deviation of this size
 pt(q = -sd(calciumEMean$CALCIUM), df = dim(calciumE)[1]-6)*2*100
+```
 
+The result shows that we have a probability of `42.30%` of observing one standard deviation of the 6 reference means given all observations.
+
+Our degrees of freedom is given by the number of observations minus the number of separate sets we calculated the means from: `df = 58 - 6 = 52`
+
+```{r}
 # Calculate the p-value
 test <- tost((calciumC %>% filter(regimen == 'control'))[,2], (calciumC %>% filter(regimen == 'MON810'))[,2], alpha = 0.05, epsilon = sd(calciumEMean$CALCIUM))
 test
 test$tost.p.value
 ```
 
-Our degrees of freedom is given by the number of observations minus the number of separate sets we calculated the means from: `df = 58 - 6 = 52`
-The result shows that we have a probability of `42.30%` of observing one standard deviation of the 6 reference means given all observations.
+The tost test can be interpreted as a regular two sided test checking if the means are within a range of $\pm\space\epsilon$. As the p-value is so high, we __reject the alternate hypothesis__ that the two sets are not equivalent. Indeed, under these conditions we argue that they __are equivalent__.
 
 *ii)* two standard deviations of the 6 reference means.
 ```{r}
 # The probability of observing a deviation of twice this size
 pt(q = -2*sd(calciumEMean$CALCIUM), df = dim(calciumE)[1]-6)*2*100
+```
 
+Similarly, the probability of observing two standard deviations from the mean given our data is `11.75%` with `df = 52`
+```{r}
 # Calculate the p-value
 test <- tost((calciumC %>% filter(regimen == 'control'))[,2], (calciumC %>% filter(regimen == 'MON810'))[,2], alpha = 0.05, epsilon = 2*sd(calciumEMean$CALCIUM))
 test
 test$tost.p.value
 ```
 
-Similarly, the probability of observing two standard deviations from the mean given our data is `11.75%` with `df = 52`
+The tost test can be interpreted as a regular two sided test checking if the means are within a range of $\pm\space\epsilon$. As the p-value is so high, we __reject the alternate hypothesis__ that the two sets are not equivalent. Indeed, under these conditions we argue that they __are equivalent__.
    
 ##### f. Summarize and comment these results.
 
@@ -343,6 +332,17 @@ c) level of calcium for males in period 2 is the same for the control and MON810
 $\mu_x=\mu_y$
 
 We switched from performing the t-test to the wilcox test due to the distribution of our sample data. The histogram did not appear to follow a normal distribution and thus we dropped the assumption of normality by using the wilcox test instead.
+
+d)
+We have a 56.20% power with `n = 10` observations
+We have a 86.89% power with `n = 20` observations.
+Only by having at least `n = 17` observations can we detect a difference of 1 standard deviation with at least an 80% accuracy.
+
+
+e)
+the two means __are equivalent__ at 1 standard deviation
+the two means __are equivalent__ at 2 standard deviations
+
 
 #### __(Q2)__ Do the same analysis with the variable "DIRBILI" (direct bilirubin)
 ```{r, echo = FALSE}
@@ -533,19 +533,24 @@ The wilcox is a useful approach as it does not assume anything about the distrib
 As we are testing two proportions we will need the pwr.2p.test to compute the power.
 
 *i)* with only 10 animals per group? 
-```{r, eval = FALSE}
+```{r}
 pwr.2p.test(n = 10, h = 1, alternative = "two.sided", sig.level = 0.05)
 ```
 
+We have a 60.88% power with `n = 10` observations.
+
 *ii)* with 20 animal? 
-```{r, eval = FALSE}
+```{r}
 pwr.2p.test(n = 20, h = 1, alternative = "two.sided", sig.level = 0.05)
 ```
 
+We have a 88.54% power with `n = 20` observations.
+
 *iii)* How can we ensure to detect such difference with a probability of 80%?
-```{r, eval = FALSE}
+```{r}
 pwr.2p.test(power = 0.80, h = 1, alternative = "two.sided", sig.level = 0.05)
 ```
+Only by having at least `n = 16` observations can we detect a difference of 1 standard deviation with at least an 80% accuracy.
 
 ##### e. Test for the males if the mean levels of calcium for period 2 of the control group and the MON810 are equivalent. The equivalence limits will be defined using the 6 reference groups as
 ```{r}
@@ -576,7 +581,7 @@ test
 # p-value
 test$tost.p.value
 ```
-The output can be interpreted similarly to a standard hypothesis test, therefore from the p-value we conclude that the two means are not equivalent, we __reject the alternative hypothesis__.
+The output can be interpreted similarly to a standard hypothesis test, therefore from the p-value we conclude that the two means __are equivalent__, we __reject the alternative hypothesis__.
 
 *ii)* two standard deviations of the 6 reference means.
 ```{r}
@@ -592,7 +597,7 @@ test
 # p-value
 test$tost.p.value
 ```
-The output can be interpreted similarly to a standard hypothesis test, therefore from the p-value > 0.05 we conclude that the two means are not equivalent, we __reject the alternative hypothesis__.
+The output can be interpreted similarly to a standard hypothesis test, therefore from the p-value > 0.05 we __reject the alternative hypothesis__ and argue that the two means __are equivalent__.
 
 ##### f. Summarize and comment these results.
 
@@ -610,11 +615,20 @@ c) level of dirbili for males in period 2 is the same for the control and MON810
 - The wilcox test rejected the __alternate hypothesis__, arguing that the means are shared between the two sets
 $\mu_x=\mu_y$
 
+d) What is the probability to detect a difference of 1 sd (one standard deviation)
+We have a 60.88% power with `n = 10` observations.
+We have a 88.54% power with `n = 20` observations.
+Only by having at least `n = 16` observations can we detect a difference of 1 standard deviation with at least an 80% accuracy.
+
+e) 
+the two means __are equivalent__ at 1 standard deviation
+the two means __are equivalent__ at 2 standard deviations
+
 # Multiple comparisons
 #### __(Q1)__
 Redo the three tests of the previous section (questions a., b. and c.) for now comparing  the means of all the quantitative variables (see the annex 5 of the ANSES report <ttt>BIOT2009sa0285Ra.pdf</ttt> to know the type of each variable).
 
-##### a. mean level for period 2 is the same for males and females. 
+##### a. mean level for period 2 is the same for males and females.
 ```{r}
 questionA_ttest <- function(variable, alpha, m){
   # Filter the data was want and remove NA from variable
