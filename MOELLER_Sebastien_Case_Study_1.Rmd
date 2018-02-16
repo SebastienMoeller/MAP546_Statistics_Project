@@ -20,7 +20,7 @@ output:
 ```{r}
 if (!require("pacman")) install.packages("pacman")
 
-pacman::p_load(equivalence, tidyverse, ggplot2, dplyr, plyr)#, pwr)
+pacman::p_load(equivalence, tidyverse, ggplot2, dplyr, plyr, pwr)
 ```
 
 # Introduction
@@ -353,7 +353,7 @@ questionA_wilcox <- function(variable, alpha, m){
   # Check if the the two groups have at least one observation
   if(dim((dataNew %>% filter(sex == 'M')))[1] > 0 && dim(dataNew %>% filter(sex == 'F'))[1] > 0){
     # Wilcox p-value
-    return(wilcox.test((dataNew %>% filter(sex == 'M'))[,2], (dataNew %>% filter(sex == 'F'))[,2], alternative = 'two.sided', conf.level=1-alpha/m)$p.val)
+    return(wilcox.test((dataNew %>% filter(sex == 'M'))[,2], (dataNew %>% filter(sex == 'F'))[,2], alternative = 'two.sided', conf.level=1-alpha/m))
   }
   else{
     return(NA)
@@ -367,7 +367,7 @@ questionB_wilcox <- function(variable, alpha, m){
   # Check if the the two groups have at least one observation
   if(dim(dataNew %>% filter(period == 2))[1] > 0 && dim(dataNew %>% filter(period == 1))[1] > 0){
     # Wilcox p-value
-    return(wilcox.test((dataNew %>% filter(period == 1))[,2], (dataNew %>% filter(period == 2))[,2], alternative = 'two.sided', conf.level=1-alpha/m)$p.val)
+    return(wilcox.test((dataNew %>% filter(period == 1))[,2], (dataNew %>% filter(period == 2))[,2], alternative = 'two.sided', conf.level=1-alpha/m))
   }
   else{
     return(NA)
@@ -381,7 +381,7 @@ questionC_wilcox <- function(variable, alpha, m){
   # Check if the the two groups have at least one observation
   if(dim((dataNew %>% filter(regimen == 'control')))[1] > 0 && dim(dataNew %>% filter(regimen == 'MON810'))[1] > 0){
     # Wilcox p-value
-    return(wilcox.test((dataNew %>% filter(regimen == 'control'))[,2], (dataNew %>% filter(regimen == 'MON810'))[,2], alternative = 'two.sided', conf.level=1-alpha/m)$p.val)
+    return(wilcox.test((dataNew %>% filter(regimen == 'control'))[,2], (dataNew %>% filter(regimen == 'MON810'))[,2], alternative = 'two.sided', conf.level=1-alpha/m))
   }
   else{
     return(NA)
@@ -446,11 +446,16 @@ chisq.test(table(dirbiliA[, 1:2]), correct = FALSE)
 
 Our test returns `p-value = 0.5814` indicating that the two sexes DIRBILI values are not independent and actually share a common mean.
 
+### IMPORTANT REMARK
+
+The chi-square test is intended for categorical variables. Therefore it is unlikely the be applicable in our case where we are working with ordinal and intervaled data. This is why we must resort to the wilcox test.
+
 ```{r}
 questionA_wilcox("DIRBILI", 0.05, 1)
+questionA_wilcox("DIRBILI", 0.05, 1)$p.val
 ```
 
-The wilcox is a useful approach as it does not assume anything about the distribution or parameters. As our observations consist of only __three__ values it is difficult to assume a continuous distribution. Wilcox works around this issue and calculates a p-value = `0.5835049`, similar to that of the chi square test and __rejects the alternative hypothesis__.
+The wilcox is a useful approach as it does not assume anything about the distribution or parameters. As our observations consist of only __two__ values it is difficult to assume a continuous distribution. Wilcox works around this issue and calculates a p-value = `0.5835049`, similar to that of the chi square test and __rejects the alternative hypothesis__.
 
 ##### b. Test for the males if the mean level of DIRBILI is the same for period 1 and period 2.
 ```{r}
@@ -473,20 +478,16 @@ We immediately suspect that the two periods do not have independent means. Let u
 table(dirbiliB)
 ```
 
-This Chi-square test does not need correction at the Yates' correction is only available on 2x2 contingency tables. For our test the `df = (nrow - 1)(ncol - 1) = (2)(1) = 2` derived from the contingency table.
-```{r}
-test <- chisq.test(table(dirbiliB))
-test
-test$p.value
-```
+### IMPORTANT REMARK
 
-We calculate `p-value < 2.2e-16`, and thus __reject the null hypothesis__. The two periods have distinct means.
+The chi-square test is intended for categorical variables. It is __not__ applicable in our case where we are working with ordinal and intervaled data with three levels. Although we return a result we cannot use it and must instead resort to the wilcox test.
 
 ```{r}
 questionB_wilcox("DIRBILI", 0.05, 1)
+questionB_wilcox("DIRBILI", 0.05, 1)$p.val
 ```
 
-The wilcox is a useful approach as it does not assume anything about the distribution or parameters. As our observations consist of only __three__ values it is difficult to assume a continuous distribution. Wilcox works around this issue and calculates a p-value similarly low as the chi square test and much lower than our 5% cutoff.
+The wilcox is a useful approach as it does not assume anything about the distribution or parameters. As our observations consist of only __three__ values it is difficult to assume a continuous distribution. Wilcox works around this issue and calculates a low p-value much lower than our 5% cutoff. We find a `p-value = 4.819985e-11` and thus __reject the null hypothesis__. The two sets have distinct means.
 
 ##### c. Test for the males if the mean level of DIRBILI for period 2 is the same for the control group and the MON810 group.
 ```{r}
@@ -515,36 +516,36 @@ chisq.test(table(dirbiliC)[1:2,])
 
 With a `p-value = 1` we reject the alternative hypothesis. The two regimens `contol` and `MON810` share the same mean.
 
+### IMPORTANT REMARK
+
+The chi-square test is intended for categorical variables. Therefore it is unlikely the be applicable in our case where we are working with ordinal and intervaled data. This is why we must resort to the wilcox test.
+
 ###### Wilcox alternative
 ```{r, warning = FALSE}
 questionC_wilcox("DIRBILI", 0.05, 1)
+questionC_wilcox("DIRBILI", 0.05, 1)$p.val
 ```
 
-The wilcox is a useful approach as it does not assume anything about the distribution or parameters. As our observations consist of only two values it is difficult to assume a continuous distribution. Wilcox works around this issue and calculates a p-value equal to the chi square test of 1.
+The wilcox is a useful approach as it does not assume anything about the distribution or parameters. As our observations consist of only two values but their ordinality and interval matter, it is difficult to assume a categorical distribution. Wilcox works around this issue and calculates a p-value equal to the chi square test of 1.
 
----------
 ##### d. What is the probability to detect a difference of 1 sd (one standard deviation)
-```{r}
 
-```
-
+As we are testing two proportions we will need the pwr.2p.test to compute the power.
 
 *i)* with only 10 animals per group? 
-```{r}
-
+```{r, eval = FALSE}
+pwr.2p.test(n = 10, h = 1, alternative = "two.sided", sig.level = 0.05)
 ```
 
 *ii)* with 20 animal? 
-```{r}
-
+```{r, eval = FALSE}
+pwr.2p.test(n = 20, h = 1, alternative = "two.sided", sig.level = 0.05)
 ```
 
 *iii)* How can we ensure to detect such difference with a probability of 80%?
-```{r}
-
+```{r, eval = FALSE}
+pwr.2p.test(power = 0.80, h = 1, alternative = "two.sided", sig.level = 0.05)
 ```
-
-----------
 
 ##### e. Test for the males if the mean levels of calcium for period 2 of the control group and the MON810 are equivalent. The equivalence limits will be defined using the 6 reference groups as
 ```{r}
@@ -565,27 +566,33 @@ sd(dirbiliEMean$DIRBILI)
 
 # The probability of observing a deviation of this size
 pt(q = -sd(dirbiliEMean$DIRBILI), df = dim(dirbiliE)[1]-dim(dirbiliEMean)[1])*2*100
-
-# Calculate the p-value
-test <- tost((dirbiliC %>% filter(regimen == 'control'))[,2], (dirbiliC %>% filter(regimen == 'MON810'))[,2], alpha = 0.05, epsilon = sd(dirbiliEMean$DIRBILI))
-test
-test$tost.p.value
 ```
 
 We find that the probability of observing one standard deviation is `99.18%`.
+```{r}
+# Calculate the p-value
+test <- tost((dirbiliC %>% filter(regimen == 'control'))[,2], (dirbiliC %>% filter(regimen == 'MON810'))[,2], alpha = 0.05, epsilon = sd(dirbiliEMean$DIRBILI))
+test
+# p-value
+test$tost.p.value
+```
+The output can be interpreted similarly to a standard hypothesis test, therefore from the p-value we conclude that the two means are not equivalent, we __reject the alternative hypothesis__.
 
 *ii)* two standard deviations of the 6 reference means.
 ```{r}
 # The probability of observing a deviation of twice this size
 pt(q = -2*sd(dirbiliEMean$DIRBILI), df = dim(dirbiliE)[1]-dim(dirbiliEMean)[1])*2*100
-
-# Calculate the p-value
-test <- tost((dirbiliC %>% filter(regimen == 'control'))[,2], (dirbiliC %>% filter(regimen == 'MON810'))[,2], alpha = 0.05, epsilon = 2*sd(dirbiliEMean$DIRBILI))
-test
-test$tost.p.value
 ```
 
 We find that the probability of observing two standard deviations is `98.35%`.
+```{r}
+# Calculate the p-value
+test <- tost((dirbiliC %>% filter(regimen == 'control'))[,2], (dirbiliC %>% filter(regimen == 'MON810'))[,2], alpha = 0.05, epsilon = 2*sd(dirbiliEMean$DIRBILI))
+test
+# p-value
+test$tost.p.value
+```
+The output can be interpreted similarly to a standard hypothesis test, therefore from the p-value > 0.05 we conclude that the two means are not equivalent, we __reject the alternative hypothesis__.
 
 ##### f. Summarize and comment these results.
 

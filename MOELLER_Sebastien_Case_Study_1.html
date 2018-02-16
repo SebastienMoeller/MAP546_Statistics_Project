@@ -126,7 +126,7 @@ $(document).ready(function () {
 
 <pre class="r"><code>if (!require(&quot;pacman&quot;)) install.packages(&quot;pacman&quot;)</code></pre>
 <pre><code>## Loading required package: pacman</code></pre>
-<pre class="r"><code>pacman::p_load(equivalence, tidyverse, ggplot2, dplyr, plyr)#, pwr)</code></pre>
+<pre class="r"><code>pacman::p_load(equivalence, tidyverse, ggplot2, dplyr, plyr, pwr)</code></pre>
 <div id="introduction" class="section level1">
 <h1>Introduction</h1>
 <p>The dataset <ttt>dataMON810_2018.csv</ttt> consists of several measurements made during a subchronic toxicity study concerning the MON810 maize.</p>
@@ -579,10 +579,21 @@ dirbiliAMean</code></pre>
 ## data:  table(dirbiliA[, 1:2])
 ## X-squared = 0.3039, df = 1, p-value = 0.5814</code></pre>
 <p>Our test returns <code>p-value = 0.5814</code> indicating that the two sexes DIRBILI values are not independent and actually share a common mean.</p>
-<pre class="r"><code>questionA_wilcox(&quot;DIRBILI&quot;, 0.05, 1)</code></pre>
-<pre><code>## [1] 0.5835049</code></pre>
-<p>The wilcox is a useful approach as it does not assume anything about the distribution or parameters. As our observations consist of only <strong>three</strong> values it is difficult to assume a continuous distribution. Wilcox works around this issue and calculates a p-value = <code>0.5835049</code>, similar to that of the chi square test and <strong>rejects the alternative hypothesis</strong>.</p>
 </div>
+</div>
+<div id="important-remark" class="section level3">
+<h3>IMPORTANT REMARK</h3>
+<p>The chi-square test is intended for categorical variables. Therefore it is unlikely the be applicable in our case where we are working with ordinal and intervaled data. This is why we must resort to the wilcox test.</p>
+<pre class="r"><code>questionA_wilcox(&quot;DIRBILI&quot;, 0.05, 1)</code></pre>
+<pre><code>## 
+##  Wilcoxon rank sum test with continuity correction
+## 
+## data:  (dataNew %&gt;% filter(sex == &quot;M&quot;))[, 2] and (dataNew %&gt;% filter(sex == &quot;F&quot;))[, 2]
+## W = 5071, p-value = 0.5835
+## alternative hypothesis: true location shift is not equal to 0</code></pre>
+<pre class="r"><code>questionA_wilcox(&quot;DIRBILI&quot;, 0.05, 1)$p.val</code></pre>
+<pre><code>## [1] 0.5835049</code></pre>
+<p>The wilcox is a useful approach as it does not assume anything about the distribution or parameters. As our observations consist of only <strong>two</strong> values it is difficult to assume a continuous distribution. Wilcox works around this issue and calculates a p-value = <code>0.5835049</code>, similar to that of the chi square test and <strong>rejects the alternative hypothesis</strong>.</p>
 <div id="b.-test-for-the-males-if-the-mean-level-of-dirbili-is-the-same-for-period-1-and-period-2." class="section level5">
 <h5>b. Test for the males if the mean level of DIRBILI is the same for period 1 and period 2.</h5>
 <pre class="r"><code># Filter the data was want and remove NA from variable
@@ -605,21 +616,21 @@ ggplot() +
 ##   0.001   0 144
 ##   0.01  129   0
 ##   0.1    71  54</code></pre>
-<p>This Chi-square test does not need correction at the Yates’ correction is only available on 2x2 contingency tables. For our test the <code>df = (nrow - 1)(ncol - 1) = (2)(1) = 2</code> derived from the contingency table.</p>
-<pre class="r"><code>test &lt;- chisq.test(table(dirbiliB))
-test</code></pre>
-<pre><code>## 
-##  Pearson's Chi-squared test
-## 
-## data:  table(dirbiliB)
-## X-squared = 275.31, df = 2, p-value &lt; 2.2e-16</code></pre>
-<pre class="r"><code>test$p.value</code></pre>
-<pre><code>## [1] 1.649801e-60</code></pre>
-<p>We calculate <code>p-value &lt; 2.2e-16</code>, and thus <strong>reject the null hypothesis</strong>. The two periods have distinct means.</p>
-<pre class="r"><code>questionB_wilcox(&quot;DIRBILI&quot;, 0.05, 1)</code></pre>
-<pre><code>## [1] 4.819985e-11</code></pre>
-<p>The wilcox is a useful approach as it does not assume anything about the distribution or parameters. As our observations consist of only <strong>three</strong> values it is difficult to assume a continuous distribution. Wilcox works around this issue and calculates a p-value similarly low as the chi square test and much lower than our 5% cutoff.</p>
 </div>
+</div>
+<div id="important-remark-1" class="section level3">
+<h3>IMPORTANT REMARK</h3>
+<p>The chi-square test is intended for categorical variables. It is <strong>not</strong> applicable in our case where we are working with ordinal and intervaled data with three levels. Although we return a result we cannot use it and must instead resort to the wilcox test.</p>
+<pre class="r"><code>questionB_wilcox(&quot;DIRBILI&quot;, 0.05, 1)</code></pre>
+<pre><code>## 
+##  Wilcoxon rank sum test with continuity correction
+## 
+## data:  (dataNew %&gt;% filter(period == 1))[, 2] and (dataNew %&gt;% filter(period == 2))[, 2]
+## W = 7535, p-value = 4.82e-11
+## alternative hypothesis: true location shift is not equal to 0</code></pre>
+<pre class="r"><code>questionB_wilcox(&quot;DIRBILI&quot;, 0.05, 1)$p.val</code></pre>
+<pre><code>## [1] 4.819985e-11</code></pre>
+<p>The wilcox is a useful approach as it does not assume anything about the distribution or parameters. As our observations consist of only <strong>three</strong> values it is difficult to assume a continuous distribution. Wilcox works around this issue and calculates a low p-value much lower than our 5% cutoff. We find a <code>p-value = 4.819985e-11</code> and thus <strong>reject the null hypothesis</strong>. The two sets have distinct means.</p>
 <div id="c.-test-for-the-males-if-the-mean-level-of-dirbili-for-period-2-is-the-same-for-the-control-group-and-the-mon810-group." class="section level5">
 <h5>c. Test for the males if the mean level of DIRBILI for period 2 is the same for the control group and the MON810 group.</h5>
 <pre class="r"><code># Filter the data
@@ -650,31 +661,33 @@ ggplot() +
 ## data:  table(dirbiliC)[1:2, ]
 ## X-squared = 0, df = 1, p-value = 1</code></pre>
 <p>With a <code>p-value = 1</code> we reject the alternative hypothesis. The two regimens <code>contol</code> and <code>MON810</code> share the same mean.</p>
+</div>
+</div>
+<div id="important-remark-2" class="section level3">
+<h3>IMPORTANT REMARK</h3>
+<p>The chi-square test is intended for categorical variables. Therefore it is unlikely the be applicable in our case where we are working with ordinal and intervaled data. This is why we must resort to the wilcox test.</p>
 <div id="wilcox-alternative" class="section level6">
 <h6>Wilcox alternative</h6>
 <pre class="r"><code>questionC_wilcox(&quot;DIRBILI&quot;, 0.05, 1)</code></pre>
+<pre><code>## 
+##  Wilcoxon rank sum test with continuity correction
+## 
+## data:  (dataNew %&gt;% filter(regimen == &quot;control&quot;))[, 2] and (dataNew %&gt;% filter(regimen == &quot;MON810&quot;))[, 2]
+## W = 200, p-value = 1
+## alternative hypothesis: true location shift is not equal to 0</code></pre>
+<pre class="r"><code>questionC_wilcox(&quot;DIRBILI&quot;, 0.05, 1)$p.val</code></pre>
 <pre><code>## [1] 1</code></pre>
-<p>The wilcox is a useful approach as it does not assume anything about the distribution or parameters. As our observations consist of only two values it is difficult to assume a continuous distribution. Wilcox works around this issue and calculates a p-value equal to the chi square test of 1.</p>
-<table style="width:12%;">
-<colgroup>
-<col width="12%"></col>
-</colgroup>
-<tbody>
-<tr class="odd">
-<td>##### d. What is the probability to detect a difference of 1 sd (one standard deviation)</td>
-</tr>
-<tr class="even">
-<td><em>i)</em> with only 10 animals per group?</td>
-</tr>
-<tr class="odd">
-<td><em>ii)</em> with 20 animal?</td>
-</tr>
-<tr class="even">
-<td><em>iii)</em> How can we ensure to detect such difference with a probability of 80%?</td>
-</tr>
-</tbody>
-</table>
+<p>The wilcox is a useful approach as it does not assume anything about the distribution or parameters. As our observations consist of only two values but their ordinality and interval matter, it is difficult to assume a categorical distribution. Wilcox works around this issue and calculates a p-value equal to the chi square test of 1.</p>
 </div>
+<div id="d.-what-is-the-probability-to-detect-a-difference-of-1-sd-one-standard-deviation-1" class="section level5">
+<h5>d. What is the probability to detect a difference of 1 sd (one standard deviation)</h5>
+<p>As we are testing two proportions we will need the pwr.2p.test to compute the power.</p>
+<p><em>i)</em> with only 10 animals per group?</p>
+<pre class="r"><code>pwr.2p.test(n = 10, h = 1, alternative = &quot;two.sided&quot;, sig.level = 0.05)</code></pre>
+<p><em>ii)</em> with 20 animal?</p>
+<pre class="r"><code>pwr.2p.test(n = 20, h = 1, alternative = &quot;two.sided&quot;, sig.level = 0.05)</code></pre>
+<p><em>iii)</em> How can we ensure to detect such difference with a probability of 80%?</p>
+<pre class="r"><code>pwr.2p.test(power = 0.80, h = 1, alternative = &quot;two.sided&quot;, sig.level = 0.05)</code></pre>
 </div>
 <div id="e.-test-for-the-males-if-the-mean-levels-of-calcium-for-period-2-of-the-control-group-and-the-mon810-are-equivalent.-the-equivalence-limits-will-be-defined-using-the-6-reference-groups-as" class="section level5">
 <h5>e. Test for the males if the mean levels of calcium for period 2 of the control group and the MON810 are equivalent. The equivalence limits will be defined using the 6 reference groups as</h5>
@@ -700,6 +713,7 @@ sd(dirbiliEMean$DIRBILI)</code></pre>
 <pre class="r"><code># The probability of observing a deviation of this size
 pt(q = -sd(dirbiliEMean$DIRBILI), df = dim(dirbiliE)[1]-dim(dirbiliEMean)[1])*2*100</code></pre>
 <pre><code>## [1] 99.17538</code></pre>
+<p>We find that the probability of observing one standard deviation is <code>99.18%</code>.</p>
 <pre class="r"><code># Calculate the p-value
 test &lt;- tost((dirbiliC %&gt;% filter(regimen == 'control'))[,2], (dirbiliC %&gt;% filter(regimen == 'MON810'))[,2], alpha = 0.05, epsilon = sd(dirbiliEMean$DIRBILI))
 test</code></pre>
@@ -717,13 +731,15 @@ test</code></pre>
 ##  -0.02166104  0.02166104
 ## Null hypothesis of statistical difference is: not rejected 
 ## TOST p-value: 0.2120141</code></pre>
-<pre class="r"><code>test$tost.p.value</code></pre>
+<pre class="r"><code># p-value
+test$tost.p.value</code></pre>
 <pre><code>## [1] 0.2120141</code></pre>
-<p>We find that the probability of observing one standard deviation is <code>99.18%</code>.</p>
+<p>The output can be interpreted similarly to a standard hypothesis test, therefore from the p-value we conclude that the two means are not equivalent, we <strong>reject the alternative hypothesis</strong>.</p>
 <p><em>ii)</em> two standard deviations of the 6 reference means.</p>
 <pre class="r"><code># The probability of observing a deviation of twice this size
 pt(q = -2*sd(dirbiliEMean$DIRBILI), df = dim(dirbiliE)[1]-dim(dirbiliEMean)[1])*2*100</code></pre>
 <pre><code>## [1] 98.35085</code></pre>
+<p>We find that the probability of observing two standard deviations is <code>98.35%</code>.</p>
 <pre class="r"><code># Calculate the p-value
 test &lt;- tost((dirbiliC %&gt;% filter(regimen == 'control'))[,2], (dirbiliC %&gt;% filter(regimen == 'MON810'))[,2], alpha = 0.05, epsilon = 2*sd(dirbiliEMean$DIRBILI))
 test</code></pre>
@@ -741,9 +757,10 @@ test</code></pre>
 ##  -0.02166104  0.02166104
 ## Null hypothesis of statistical difference is: not rejected 
 ## TOST p-value: 0.05714879</code></pre>
-<pre class="r"><code>test$tost.p.value</code></pre>
+<pre class="r"><code># p-value
+test$tost.p.value</code></pre>
 <pre><code>## [1] 0.05714879</code></pre>
-<p>We find that the probability of observing two standard deviations is <code>98.35%</code>.</p>
+<p>The output can be interpreted similarly to a standard hypothesis test, therefore from the p-value &gt; 0.05 we conclude that the two means are not equivalent, we <strong>reject the alternative hypothesis</strong>.</p>
 </div>
 <div id="f.-summarize-and-comment-these-results.-1" class="section level5">
 <h5>f. Summarize and comment these results.</h5>
