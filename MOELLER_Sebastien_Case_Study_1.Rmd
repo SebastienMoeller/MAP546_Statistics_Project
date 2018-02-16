@@ -20,7 +20,7 @@ output:
 ```{r}
 if (!require("pacman")) install.packages("pacman")
 
-pacman::p_load(equivalence, tidyverse, ggplot2, dplyr)
+pacman::p_load(equivalence, tidyverse, ggplot2, dplyr, plyr)
 ```
 
 # Introduction
@@ -42,7 +42,7 @@ data <- read.csv('dataMON810_2018.csv')
 ###### a. Test if the mean level of calcium for period 2 is the same for males and females.  </br>**Hint:** plot first the data and justify the test(s) to use.
 ```{r}
 # Filter the data was want and remove NA from variable
-calciumA <- data %>% filter(period == 2) %>% dplyr::select(CALCIUM, sex) %>% na.omit
+calciumA <- data %>% filter(period == 2) %>% select(CALCIUM, sex) %>% na.omit
 # Calculate the sample means
 calciumAMean <- aggregate(calciumA$CALCIUM  ~ calciumA$sex, FUN = 'mean')
 colnames(calciumAMean) <- c('sex', 'CALCIUM')
@@ -63,10 +63,21 @@ $$
 H_0:\mu_{x} = \mu_{y} \space\text{ versus }\space H_1:\mu_{x} \neq\mu_{y}
 $$
 
+###### Let us look at the distribution of the observations
+```{r}
+calciumA <- ddply(calciumA, 'sex', transform, mean = mean(CALCIUM))
+
+ggplot(data = calciumA, aes(x = CALCIUM, color = sex)) + geom_histogram(bins = 25) + 
+  geom_vline(aes(xintercept = mean), linetype = 3) +
+  facet_grid(~sex) + theme_bw()
+```
+
+The histograms seem to reveal a distribution not too far from normal. This allows us to apply the student t-test to compare the means as it assumes normallity.
+
 ###### Assuming equal variances
 We can use the function `t.test`. Let $x$ and $y$ denote $males$ and $females$ respectively.
 
-Assuming first equal variances $(\sigma^2_x = \sigma^2_y)$. We select a 5% significance level and run the test.
+We run our first test assuming equal variances $(\sigma^2_x = \sigma^2_y)$. We select a 5% significance level and run the test.
 ```{r}
 alpha <- 0.05
 t.test((calciumA %>% filter(sex == 'M'))$CALCIUM, (calciumA %>% filter(sex == 'F'))$CALCIUM, conf.level = 1 - alpha, var.equal = TRUE)
@@ -75,12 +86,15 @@ t.test((calciumA %>% filter(sex == 'M'))$CALCIUM, (calciumA %>% filter(sex == 'F
 Under the assumption that the two sexes have equal variances, we find a low `p-value < 2.2e-16` and thus __reject the null _hypothesis__ that $\mu_x = \mu_y$.
 
 ###### F-test for equal variances
-As stated, the previous t-test assumed that the two populations have equal variances. An F-test is used to test if the variances of two populations are equal. We will perform a two tailed test to see if our previous assumption was valid or incorrect.
+As stated, the previous t-test assumed that the two populations have equal variances. It is unreasonable to make this assumption without an additional test. An F-test is used to test if the variances of two populations are equal. We will perform a two tailed test to see if our previous assumption was valid or not.
 
 For the F-test, our hypotheses are as follow:
 $H_0: \sigma_x = \sigma_y \space\text{versus}\space H_1:\sigma_x \neq \sigma_y$
 ```{r}
-var.test((calciumA %>% filter(sex == 'M'))$CALCIUM, (calciumA %>% filter(sex == 'F'))$CALCIUM, conf.level = 1 - alpha, alternative = 'two.sided')
+test <- var.test((calciumA %>% filter(sex == 'M'))$CALCIUM, (calciumA %>% filter(sex == 'F'))$CALCIUM, conf.level = 1 - alpha, alternative = 'two.sided')
+test
+# Do we reject the null hypothesis?
+test$p.val < 0.05
 ```
 
 Our intuition was correct, the true ratio of variances $\frac{\sigma_x}{\sigma_y} \neq 1$. Thus we __reject the null hypothesis__.
@@ -89,9 +103,11 @@ Our intuition was correct, the true ratio of variances $\frac{\sigma_x}{\sigma_y
 Assuming equal variances between the two groups has been disputed.
 ```{r}
 aggregate(calciumA$CALCIUM  ~ calciumA$sex, FUN = 'sd')
+dim(calciumA[calciumA$sex == 'F',])[1]
+dim(calciumA[calciumA$sex == 'M',])[1]
 ```
 
-The sample data of size 97 for males and 90 for females have very different standard deviations. It is therefore important to run the t-test without the assumption of equal variances.
+The sample data of size 90 for females and 97 for males have very different standard deviations. It is therefore important to run the t-test without the assumption of equal variances.
 ```{r}
 t.test((calciumA %>% filter(sex == 'M'))$CALCIUM, (calciumA %>% filter(sex == 'F'))$CALCIUM, conf.level = 1 - alpha, var.equal = FALSE)
 ```
@@ -104,7 +120,7 @@ We can safely conclude that the two sexes do indeed have different means by the 
 ##### b. Test for the males if the mean level of calcium is the same for period 1 and period 2.
 ```{r}
 # Filter the data was want and remove NA from variable
-calciumB <- data %>% filter(sex == 'M') %>% dplyr::select(period, CALCIUM) %>% na.omit
+calciumB <- data %>% filter(sex == 'M') %>% select(period, CALCIUM) %>% na.omit
 calciumB$period <- as.factor(calciumB$period)
 
 calciumBMean <- aggregate(calciumB$CALCIUM  ~ calciumB$period, FUN = 'mean')
@@ -119,13 +135,26 @@ ggplot() +
 calciumBMean
 ```
 
+```{r}
+calciumB <- ddply(calciumB, 'period', transform, mean = mean(CALCIUM))
+
+ggplot(data = calciumB, aes(x = CALCIUM, color = period)) + geom_histogram(bins = 20) + 
+  geom_vline(aes(xintercept = mean), linetype = 3) +
+  facet_grid(~period) + theme_bw()
+```
+
+As with the previous question, the data does seem to follow a normal distribution although it could be argued otherwise. For now, we will run our tests on the data using the t-test. We will consider other options in the later sections.
+
 ###### F-test for equal variances
 As stated, the previous t-test assumed that the two populations have equal variances. An F-test is used to test if the variances of two populations are equal. We will perform a two tailed test to see if our previous assumption was valid or incorrect.
 
 For the F-test, our hypotheses are as follow:
 $H_0: \sigma_x = \sigma_y \space\text{versus}\space H_1:\sigma_x \neq \sigma_y$
 ```{r}
-var.test((calciumB %>% filter(period == 1))$CALCIUM, (calciumB %>% filter(period == 2))$CALCIUM, conf.level = 1 - alpha, alternative = 'two.sided')
+test <- var.test((calciumB %>% filter(period == 1))$CALCIUM, (calciumB %>% filter(period == 2))$CALCIUM, conf.level = 1 - alpha, alternative = 'two.sided')
+test
+# Do we reject the null hypothesis
+test$p.val < 0.05
 ```
 
 Our intuition was correct, the true ratio of variances $\frac{\sigma_x}{\sigma_y} \neq 1$. Thus we __reject the null hypothesis__.
@@ -141,10 +170,12 @@ dim(filter(calciumB, period == 1))[1]
 dim(filter(calciumB, period == 2))[1]
 ```
 
-
-The sample data of size 98 for period 1 males, and 97 for period 2 males have very different standard deviations. It is therefore important to run the t-test without the assumption of equal variances.
+The sample data of size 98 for period 1, and 97 for period 2 have very different standard deviations. It is therefore important to run the t-test without the assumption of equal variances especially because we rejected the F-test's null hypothesis.
 ```{r}
-t.test((calciumB %>% filter(period == 1))$CALCIUM, (calciumB %>% filter(period == 2))$CALCIUM, conf.level = 1 - alpha, var.equal = FALSE)
+test <- t.test((calciumB %>% filter(period == 1))$CALCIUM, (calciumB %>% filter(period == 2))$CALCIUM, conf.level = 1 - alpha, var.equal = FALSE)
+test
+# Do we reject the null hypothesis?
+test$p.value < 0.05
 ```
 
 Our new t-test also __rejects the null hypothesis__ that the two groups share the same mean displaying a `p-value = 3.113e-10`.
@@ -155,7 +186,7 @@ We can safely conclude that the male population between the two periods do indee
 ##### c. Test for the males if the mean level of calcium for period 2 is the same for the control group and the MON810 group.
 ```{r}
 # Filter the data was want and remove NA from variable
-calciumC <- data %>% filter(sex == 'M') %>% filter(period == 2) %>% dplyr::select(regimen, CALCIUM) %>% filter(regimen %in% c('MON810', 'control')) %>% na.omit
+calciumC <- data %>% filter(sex == 'M') %>% filter(period == 2) %>% select(regimen, CALCIUM) %>% filter(regimen %in% c('MON810', 'control')) %>% na.omit
 calciumC$regimen <- as.factor(calciumC$regimen)
 
 calciumCMean <- aggregate(calciumC$CALCIUM  ~ calciumC$regimen, FUN = 'mean')
@@ -170,38 +201,44 @@ ggplot() +
 calciumCMean
 ```
 
-###### F-test for equal variances
-As stated, the previous t-test assumed that the two populations have equal variances. An F-test is used to test if the variances of two populations are equal. We will perform a two tailed test to see if our previous assumption was valid or incorrect.
-
-For the F-test, our hypotheses are as follow:
-$H_0: \sigma_x = \sigma_y \space\text{versus}\space H_1:\sigma_x \neq \sigma_y$
 ```{r}
-var.test((calciumC %>% filter(regimen == 'control'))$CALCIUM, (calciumC %>% filter(regimen == 'MON810'))$CALCIUM, conf.level = 1 - alpha, alternative = 'two.sided')
-```
+calciumC <- ddply(calciumC, 'regimen', transform, mean = mean(CALCIUM))
 
-Our F-test returns a `p-value = 0.03762` and thus __rejects the nullhypothesis__ that $\frac{\sigma_x}{\sigma_y} = 1$ at a 5% two tailed confidence level.
-
-###### Assuming different variances
-Assuming equal variances between the two groups has been disputed.
-```{r}
-aggregate(calciumC$CALCIUM  ~ calciumC$regimen, FUN = 'sd')
+ggplot(data = calciumC, aes(x = CALCIUM, color = regimen)) + geom_histogram(bins = 15) + 
+  geom_vline(aes(xintercept = mean), linetype = 3) +
+  facet_grid(~regimen) + theme_bw()
 ```
 
 ```{r}
+# Number of observations from the control group
 dim(filter(calciumC, regimen == 'control'))[1]
+# Number of observations frmo the MON810 group
 dim(filter(calciumC, regimen == 'MON810'))[1]
 ```
 
+The histogram is a little worrying as the data seems unlikely to follow a normal distribution. As the sample size for the groups is 20 for control and 19 for MON810 which are rather low, it is harder to grasp the distribution via the histogram.
 
-Out control set consists of 20 observations and the MON810 consists of 19 observations and have different standard deviations. It is therefore important to run the t-test without the assumption of equal variances.
+###### Wilcox Test
+The advantage with Wilcoxon Signed Rank Test is that it neither depends on the form of the parent distribution nor on its parameters. It does not require any assumptions about the shape of the distribution.
+
+For this reason, this test is often used as an alternative to t test's whenever the population cannot be assumed to be normally distributed. Even if the normality assumption holds, it has been shown that the efficiency of this test compared to t-test is almost 95%.
+```{r}
+test <- wilcox.test((calciumC %>% filter(regimen == 'control'))$CALCIUM, (calciumC %>% filter(regimen == 'MON810'))$CALCIUM, alternative = 'two.sided', conf.level=1-0.05)
+test
+# Do we reject the null hypothesis
+test$p.value > 0.05
+```
+Our new wilcox-test  __rejects the alternate hypothesis__ that the two groups do not share the same mean displaying a very significant `p-value = 0.694`.
+
+Checking this resut with the t-test we used in the previous questions, we get the following result:
 ```{r}
 t.test((calciumC %>% filter(regimen == 'control'))$CALCIUM, (calciumC %>% filter(regimen == 'MON810'))$CALCIUM, conf.level = 1 - alpha, var.equal = FALSE)
 ```
 
-Our new t-test  __rejects the alternate hypothesis__ that the two groups do not share the same mean displaying a very significant `p-value = 0.4466`.
+Our t-test *also* __rejects the alternate hypothesis__ that the two groups do not share the same mean displaying a very significant `p-value = 0.4466`.
 
 ###### Conclusion
-We conclude that the two groups do not have significantly different means.
+We conclude that the two groups do not have significantly different means. We were able to discard our assumption for normality from the t-test by applying the wilcox test instead. This test appears to be more appropriate as our data has unusual distributions.
 
 
 
@@ -229,7 +266,7 @@ As we only have two groups, namely: `control` and `MON810` with only 20 animals 
 ##### e. Test for the males if the mean levels of calcium for period 2 of the `control` and `MON810` groups* are equivalent. The equivalence limits will be defined using the 6 reference groups as 
 ```{r}
 # Filter the relevant data
-calciumE <- data %>% filter(sex == 'M', period == 2, regimen != 'control', regimen != 'MON810') %>% dplyr::select(regimen, CALCIUM) %>% na.omit
+calciumE <- data %>% filter(sex == 'M', period == 2, regimen != 'control', regimen != 'MON810') %>% select(regimen, CALCIUM) %>% na.omit
 calciumE$regimen <- as.factor(calciumE$regimen)
 
 # Calculate the mean of each regiem
@@ -247,7 +284,7 @@ sd(calciumEMean$CALCIUM)
 pt(q = -sd(calciumEMean$CALCIUM), df = dim(calciumE)[1]-6)*2*100
 
 # Calculate the p-value
-#tost((calciumC %>% filter(regimen == 'control'))[,2], (calciumC %>% filter(regimen == 'MON810'))[,2], alpha = 0.05, epsilon = sd(calciumEMean$CALCIUM))
+tost((calciumC %>% filter(regimen == 'control'))[,2], (calciumC %>% filter(regimen == 'MON810'))[,2], alpha = 0.05, epsilon = sd(calciumEMean$CALCIUM))
 ```
 
 Our degrees of freedom is given by the number of observations minus the number of separate sets we calculated the means from: `df = 58 - 6 = 52`
@@ -257,6 +294,9 @@ The result shows that we have a probability of `42.30%` of observing one standar
 ```{r}
 # The probability of observing a deviation of twice this size
 pt(q = -2*sd(calciumEMean$CALCIUM), df = dim(calciumE)[1]-6)*2*100
+
+# Calculate the p-value
+tost((calciumC %>% filter(regimen == 'control'))[,2], (calciumC %>% filter(regimen == 'MON810'))[,2], alpha = 0.05, epsilon = 2*sd(calciumEMean$CALCIUM))
 ```
 
 Similarly, the probability of observing two standard deviations from the mean given our data is `11.75%` with `df = 52`
@@ -286,7 +326,7 @@ We consider the variable "DIRBILI".
 ###### a. Test if the mean level of DIRBILI for period 2 is the same for males and females.
 ```{r}
 # Filter the data was want and remove NA from variable
-dirbiliA <- data %>% filter(period == 2) %>% dplyr::select(DIRBILI, sex) %>% na.omit
+dirbiliA <- data %>% filter(period == 2) %>% select(DIRBILI, sex) %>% na.omit
 
 # Calculate the sample means
 dirbiliAMean <- aggregate(dirbiliA$DIRBILI  ~ dirbiliA$sex, FUN = 'mean')
@@ -297,6 +337,15 @@ ggplot() +
   geom_point(data = dirbiliA, aes(x = DIRBILI, y = sex, colour = sex, alpha = 0.5), show.legend = FALSE) +
   geom_point(data = dirbiliAMean, aes(x = DIRBILI, y = sex, color = sex, size = 4, alpha = 0.5), show.legend = FALSE)
 ```
+
+```{r}
+dirbiliA <- ddply(dirbiliA, 'sex', transform, mean = mean(DIRBILI))
+
+ggplot(data = dirbiliA, aes(x = DIRBILI, color = sex)) + geom_histogram(bins = 20) + 
+  geom_vline(aes(xintercept = mean), linetype = 3) +
+  facet_grid(~sex) + theme_bw()
+```
+
 
 This data seems to be discrete, having a value of 0.100 or 0.001 in period 2.
 ```{r}
@@ -315,7 +364,7 @@ For the Chi-square test to function in R we need to transform the data into a co
 table(dirbiliA)
 ```
 
-We set `correction = FALSE` as correction for continuity adjusts the formula for Pearson's chi-squared test. It subtracts 0.5 from the difference between each observed value and its expected value in a 2 × 2 contingency table. This reduces the chi-squared value obtained and thus increases its p-value. This formula is chiefly used when at least one cell of the table has an expected count smaller than 5. As Yates' correction also tends to overcorrect, and we know that we have significantly more than 5 counts per group we choose not to perform the correction.
+We set `correction = FALSE` as correction for continuity adjusts the formula for Pearson's chi-squared test. It subtracts 0.5 from the difference between each observed value and its expected value in a 2 ? 2 contingency table. This reduces the chi-squared value obtained and thus increases its p-value. This formula is chiefly used when at least one cell of the table has an expected count smaller than 5. As Yates' correction also tends to overcorrect, and we know that we have significantly more than 5 counts per group we choose not to perform the correction.
 
 The Chi-square test is performed as follows:
 $\chi^2=\sum_{i = 1}^N\frac{(O_i-E_i)^2}{E_i}$
@@ -324,7 +373,7 @@ The df is given by a function of the contingency table: `df = (nrow - 1)(ncol - 
 
 $H_0: \mu_x\neq\mu_y\space\text{versus}\space H_1:\mu_x=\mu_y$
 ```{r}
-chisq.test(table(dirbiliA), correct = FALSE)
+chisq.test(table(dirbiliA[, 1:2]), correct = FALSE)
 ```
 
 Our test returns `p-value = 0.5814` indicating that the two sexes DIRBILI values are not independent and actually share a common mean.
@@ -332,7 +381,7 @@ Our test returns `p-value = 0.5814` indicating that the two sexes DIRBILI values
 ###### b. Test for the males if the mean level of DIRBILI is the same for period 1 and period 2.
 ```{r}
 # Filter the data was want and remove NA from variable
-dirbiliB <- data %>% dplyr::select(DIRBILI, period) %>% na.omit
+dirbiliB <- data %>% select(DIRBILI, period) %>% na.omit
 dirbiliB$period <- as.factor(dirbiliB$period)
 
 # Calculate means by period
@@ -355,12 +404,12 @@ This Chi-square test does not need correction at the Yates' correction is only a
 chisq.test(table(dirbiliB))
 ```
 
-We calculate `p-value = 2.2e-16`, and thus reject the null hypothesis. The two periods have distinct means.
+We calculate `p-value = 2.2e-16`, and thus __reject the null hypothesis__. The two periods have distinct means.
 
 ###### c. Test for the males if the mean level of DIRBILI for period 2 is the same for the control group and the MON810 group.
 ```{r}
 # Filter the data
-dirbiliC <- data %>% filter(sex == 'M', period == 2) %>% dplyr::select(regimen, DIRBILI) %>% filter(regimen %in% c('MON810', 'control')) %>% na.omit
+dirbiliC <- data %>% filter(sex == 'M', period == 2) %>% select(regimen, DIRBILI) %>% filter(regimen %in% c('MON810', 'control')) %>% na.omit
 
 # Calculate the means per regimen
 dirbiliCMean <- aggregate(dirbiliC$DIRBILI ~ dirbiliC$regimen, FUN = 'mean')
@@ -384,6 +433,7 @@ chisq.test(table(dirbiliC)[1:2,])
 
 With a `p-value = 1` we reject the alternative hypothesis. The two regimens `contol` and `MON810` share the same mean.
 
+---------
 ###### d. What is the probability to detect a difference of 1 sd (one standard deviation)
 
 *i)* with only 10 animals per group? 
@@ -391,12 +441,13 @@ With a `p-value = 1` we reject the alternative hypothesis. The two regimens `con
 *ii)* with 20 animal? 
 
 *iii)* How can we ensure to detect such difference with a probability of 80%?
+----------
 
 ###### e. Test for the males if the mean levels of calcium for period 2 of the control group and the MON810 are equivalent. The equivalence limits will be defined using the 6 reference groups as
 ```{r}
 # Filter the data
-dirbiliE <- data %>% filter(sex == 'M', period == 2, regimen != 'control', regimen != 'MON810') %>% dplyr::select(regimen, DIRBILI) %>% na.omit
-dirbiliE$regimen <- as.factor(dirbiliD$regimen)
+dirbiliE <- data %>% filter(sex == 'M', period == 2, regimen != 'control', regimen != 'MON810') %>% select(regimen, DIRBILI) %>% na.omit
+dirbiliE$regimen <- as.factor(dirbiliE$regimen)
 
 # Calculate the mean of each regiem
 dirbiliEMean <- aggregate(dirbiliE$DIRBILI  ~ dirbiliE$regimen, FUN = 'mean')
@@ -411,9 +462,12 @@ sd(dirbiliEMean$DIRBILI)
 
 # The probability of observing a deviation of this size
 pt(q = -sd(dirbiliEMean$DIRBILI), df = dim(dirbiliE)[1]-dim(dirbiliEMean)[1])*2*100
+
+# Calculate the p-value
+tost((dirbiliC %>% filter(regimen == 'control'))[,2], (dirbiliC %>% filter(regimen == 'MON810'))[,2], alpha = 0.05, epsilon = sd(dirbiliEMean$DIRBILI))
 ```
 
-We find that the probability of observing one standard deviation is 99.18%.
+We find that the probability of observing one standard deviation is `99.18%`.
 
 *ii)* two standard deviations of the 6 reference means.
 ```{r}
@@ -421,7 +475,7 @@ We find that the probability of observing one standard deviation is 99.18%.
 pt(q = -2*sd(dirbiliEMean$DIRBILI), df = dim(dirbiliE)[1]-dim(dirbiliEMean)[1])*2*100
 ```
 
-We find that the probability of observing two standard deviations is 98.35%.
+We find that the probability of observing two standard deviations is `98.35%`.
 
 ###### f. Summarize and comment these results.
 
@@ -439,103 +493,190 @@ Redo the three tests of the previous section (questions a., b. and c.) for now c
 
 ###### a. mean level for period 2 is the same for males and females. 
 ```{r}
-questionA <- function(variable){
+questionA_ttest <- function(variable, alpha, m){
   # Filter the data was want and remove NA from variable
-  dataNew <- data %>% filter(period == 2) %>% dplyr::select(sex, variable) %>% na.omit
+  dataNew <- data %>% filter(period == 2) %>% select(sex, variable) %>% na.omit
   
-  # F-test
-  pVal <- var.test((dataNew %>% filter(sex == 'M'))[,2], (dataNew %>% filter(sex == 'F'))[,2], conf.level = 1 - 0.05, alternative = 'two.sided')$p.val
-  
-  # Check F-test result
-  varEqual <- pVal > 0.05
-  
-  # Perform the t-test
-  t.test((dataNew %>% filter(sex == 'M'))[,2], (dataNew %>% filter(sex == 'F'))[,2], conf.level = 1 - 0.05, var.equal = varEqual)$p.val
+  # Check if the the two groups have at least one observation
+  if(dim((dataNew %>% filter(sex == 'M')))[1] > 0 && dim(dataNew %>% filter(sex == 'F'))[1] > 0){
+    # F-test
+    pVal <- var.test((dataNew %>% filter(sex == 'M'))[,2], (dataNew %>% filter(sex == 'F'))[,2], conf.level = 1 - alpha, alternative = 'two.sided')$p.val
+    
+    # Check F-test result
+    varEqual <- pVal > alpha
+    
+    # Perform the t-test
+    return(t.test((dataNew %>% filter(sex == 'M'))[,2], (dataNew %>% filter(sex == 'F'))[,2], conf.level = 1 - alpha, var.equal = varEqual)$p.val/m)
+  }
+  else{
+    return(NA)
+  }
 }
-```
 
-```{r}
-questionA('CALCIUM')
+questionA_wilcox <- function(variable, alpha, m){
+  # Filter the data was want and remove NA from variable
+  dataNew <- data %>% filter(period == 2) %>% select(sex, variable) %>% na.omit
+  
+  # Check if the the two groups have at least one observation
+  if(dim((dataNew %>% filter(sex == 'M')))[1] > 0 && dim(dataNew %>% filter(sex == 'F'))[1] > 0){
+    # Wilcox p-value
+    return(wilcox.test((dataNew %>% filter(sex == 'M'))[,2], (dataNew %>% filter(sex == 'F'))[,2], alternative = 'two.sided', conf.level=1-alpha)$p.val/m)
+  }
+  else{
+    return(NA)
+  }
+}
 ```
 
 ###### b. test for the males if the mean level is the same for period 1 and period 2.
 ```{r}
-questionB <- function(variable){
+questionB_ttest <- function(variable, alpha, m){
   # Filter the variable for males in period 1 and 2
-  dataNew <- data %>% filter(sex == 'M') %>% dplyr::select(period, variable) %>% na.omit
-  
-  # Calculate F-test's p-value
-  pVal <- var.test((dataNew %>% filter(period == 1))[,2], (dataNew %>% filter(period == 2))[,2], conf.level = 1 - 0.05, alternative = 'two.sided')$p.value
-  
-  # Check if the two periods have equal variances
-  varEqual <- pVal > 0.05
-  
-  # Perform the t-test
-  t.test((dataNew %>% filter(period == 1))[,2], (dataNew %>% filter(period == 2))[,2], conf.level = 1 - 0.05, var.equal = varEqual)$p.value
-}
-```
+  dataNew <- data %>% filter(sex == 'M') %>% select(period, variable) %>% na.omit
 
-```{r}
-questionB('CALCIUM')
+  # Check if the the two groups have at least one observation
+  if(dim(dataNew %>% filter(period == 2))[1] > 0 && dim(dataNew %>% filter(period == 1))[1] > 0){
+    # Calculate F-test's p-value
+    pVal <- var.test((dataNew %>% filter(period == 1))[,2], (dataNew %>% filter(period == 2))[,2], conf.level = 1 - alpha, alternative = 'two.sided')$p.value
+    
+    # Check if the two periods have equal variances
+    varEqual <- pVal > alpha
+    
+    # Perform the t-test
+    return(t.test((dataNew %>% filter(period == 1))[,2], (dataNew %>% filter(period == 2))[,2], conf.level = 1 - alpha, var.equal = varEqual)$p.value/m)
+  }
+  else{
+    return(NA)
+  }
+}
+
+questionB_wilcox <- function(variable, alpha, m){
+  # Filter the variable for males in period 1 and 2
+  dataNew <- data %>% filter(sex == 'M') %>% select(period, variable) %>% na.omit
+  
+  # Check if the the two groups have at least one observation
+  if(dim(dataNew %>% filter(period == 2))[1] > 0 && dim(dataNew %>% filter(period == 1))[1] > 0){
+    # Wilcox p-value
+    return(wilcox.test((dataNew %>% filter(period == 1))[,2], (dataNew %>% filter(period == 2))[,2], alternative = 'two.sided', conf.level=1-alpha)$p.val/m)
+  }
+  else{
+    return(NA)
+  }
+}
 ```
 
 ###### c. test for the males if the mean level for period 2 is the same for the control group and the MON810 group.
 ```{r}
-questionC <- function(variable){
+questionC_ttest <- function(variable, alpha, m){
   # Filter the data was want and remove NA from variable
-  dataNew <- data %>% filter(sex == 'M') %>% filter(period == 2) %>% dplyr::select(regimen, variable) %>% filter(regimen %in% c('MON810', 'control')) %>% na.omit
+  dataNew <- data %>% filter(sex == 'M') %>% filter(period == 2) %>% select(regimen, variable) %>% filter(regimen %in% c('MON810', 'control')) %>% na.omit
   
-  # Calculate F-test's p-value
-  pVal <- var.test((dataNew %>% filter(regimen == 'control'))[,2], (dataNew %>% filter(regimen == 'MON810'))[,2], conf.level = 1 - 0.05, alternative = 'two.sided')$p.val
-  
-  # Check if the two groups have the same variance
-  varEqual <- pVal > 0.05
-  
-  # Perform the t-test
-  t.test((dataNew %>% filter(regimen == 'control'))[,2], (dataNew %>% filter(regimen == 'MON810'))[,2], conf.level = 1 - 0.05, var.equal = varEqual)$p.val
-  
+  # Check if the the two groups have at least one observation
+  if(dim((dataNew %>% filter(regimen == 'control')))[1] > 0 && dim(dataNew %>% filter(regimen == 'MON810'))[1] > 0){
+    # Calculate F-test's p-value
+    pVal <- var.test((dataNew %>% filter(regimen == 'control'))[,2], (dataNew %>% filter(regimen == 'MON810'))[,2], conf.level = 1 - alpha, alternative = 'two.sided')$p.val
+    
+    # Check if the two groups have the same variance
+    varEqual <- pVal > alpha
+    
+    # Perform the t-test
+    return(t.test((dataNew %>% filter(regimen == 'control'))[,2], (dataNew %>% filter(regimen == 'MON810'))[,2], conf.level = 1 - alpha, var.equal = varEqual)$p.val/m)
+  }
+  else{
+    return(NA)
+  }
 }
-questionC('CALCIUM')
+
+questionC_wilcox <- function(variable, alpha, m){
+  # Filter the data was want and remove NA from variable
+  dataNew <- data %>% filter(sex == 'M') %>% filter(period == 2) %>% select(regimen, variable) %>% filter(regimen %in% c('MON810', 'control')) %>% na.omit
+  
+  # Check if the the two groups have at least one observation
+  if(dim((dataNew %>% filter(regimen == 'control')))[1] > 0 && dim(dataNew %>% filter(regimen == 'MON810'))[1] > 0){
+    # Wilcox p-value
+    return(wilcox.test((dataNew %>% filter(regimen == 'control'))[,2], (dataNew %>% filter(regimen == 'MON810'))[,2], alternative = 'two.sided', conf.level=1-alpha)$p.val/m)
+  }
+  else{
+    return(NA)
+  }
+}
 ```
 
 ###### Merg data
 Store the results (i.e. all the p-values) in a dataframe with one variable per row and four columns (name of the variable + three p-values). 
 
-Non-quantitative variables: BILI, PROT, GLUCOSE, BLOOD, KETONE, UROBILI, GAMMAGT, TESTIS
-```{r}
-variable <- data  %>% dplyr::select(-GLUCOSE, -BLOOD, -BILI, -PROT ,-KETONE, -UROBILI, -GAMMAGT, -TESTIS, -id, -X, -regimen, -sex, -period) %>% colnames()
+Non-quantitative variables: BILI, PROT, GLUCOSE, BLOOD, KETONE, UROBILI, GAMMAGT
+```{r, warning = FALSE}
+variable <- data  %>% select(-GLUCOSE, -BLOOD, -BILI, -PROT ,-KETONE, -UROBILI, -GAMMAGT, -id, -X, -regimen, -sex, -period) %>% colnames()
 
-results <- data.frame()
-for (i in 1:59){
-  print(cbind(i, variable[i], questionC(variable[i])))
-  #results <- rbind(results, cbind(variable[i], questionA(variable[i])))
+wilcox <- data.frame()
+ttest <- data.frame()
+for (i in 1:length(variable)){
+  # Wilcox results
+  wilcox <- rbind(wilcox, cbind(variable[i], questionA_wilcox(variable[i], 0.05, 1), questionB_wilcox(variable[i], 0.05, 1), questionC_wilcox(variable[i], 0.05, 1)))
+  # t-test results
+  ttest <- rbind(ttest, cbind(variable[i], questionA_ttest(variable[i], 0.05, 1), questionB_ttest(variable[i], 0.05, 1), questionC_ttest(variable[i], 0.05, 1)))
 }
-results
+
+colnames(wilcox) <- c('variable', 'a', 'b', 'c')
+colnames(ttest) <- c('variable', 'a', 'b', 'c')
 ```
 
-
+Lets see which t-tests have a p-value below 0.05
 ```{r}
-questionA(variable[59])
+ttest$variable <- as.character(ttest$variable)
+ttest$a <- as.numeric(paste(ttest$a))
+ttest$b <- as.numeric(paste(ttest$b))
+ttest$c <- as.numeric(paste(ttest$c))
 
-questionB(variable[20])
-questionB(variable[21])
-questionB(variable[52])
-questionB(variable[53])
-questionB(variable[54])
-questionB(variable[55])
-questionB(variable[56])
-questionB(variable[57])
-questionB(variable[58])
-questionB(variable[59])
+ttest05 <- as.data.frame(cbind(ttest$variable, ttest[,2:4] < 0.05))
+ttest05
+```
 
-questionC(variable[59])
+Lets see which wilcox-tests have a p-value below 0.05
+```{r}
+wilcox$variable <- as.character(wilcox$variable)
+wilcox$a <- as.numeric(paste(wilcox$a))
+wilcox$b <- as.numeric(paste(wilcox$b))
+wilcox$c <- as.numeric(paste(wilcox$c))
+
+wilcox05 <- as.data.frame(cbind(variable, wilcox[,2:4] < 0.05))
+wilcox05
+```
+
+Let us take a look at where the two tests agree and both have a `p-value < 0.05`
+```{r}
+as.data.frame(cbind(variable, (ttest05 == wilcox05)[,2:4]))
 ```
 
 #### __(Q2)__
-For each of the three tests, adjust the p-values using the Bonferroni  and the Benjamini-Hochberg corrections. How can we interpret these results?
+For each of the three tests, adjust the p-values using the Bonferroni and the Benjamini-Hochberg corrections. How can we interpret these results?
 
+Bonferroni's correction derives from that fact that the probability of identifying at least one significant result due to chance increases as more hypotheses are tested. Therefore we divide each p-value by the number of tests being done per question, in this case we calculated `60`, resulting in a new results table:
+```{r}
+wilcoxBonferroni <- data.frame()
+ttestBonferroni <- data.frame()
 
+for (i in 1:length(variable)){
+  # Wilcox results
+  wilcoxBonferroni <- rbind(wilcoxBonferroni, cbind(variable[i], questionA_wilcox(variable[i], 0.05, 60-sum(is.na(wilcox$a))), questionB_wilcox(variable[i], 0.05, 60-sum(is.na(wilcox$b))), questionC_wilcox(variable[i], 0.05, 60-sum(is.na(wilcox$c)))))
+  # t-test results
+  ttestBonferroni <- rbind(ttestBonferroni, cbind(variable[i], questionA_ttest(variable[i], 0.05, 60-sum(is.na(ttest$a))), questionB_ttest(variable[i], 0.05, 60-sum(is.na(ttest$b))), questionC_ttest(variable[i], 0.05, 60-sum(is.na(ttest$c)))))
+}
 
+colnames(wilcoxBonferroni) <- c('variable', 'a Bonferroni', 'b Bonferroni', 'c Bonferroni')
+colnames(wilcoxBonferroni) <- c('variable', 'a Bonferroni', 'b Bonferroni', 'c Bonferroni')
+
+wilcoxBonferroni
+```
+
+Let us see which p-values are below `0.05`.
+```{r}
+bonWilcox05 <- as.data.frame(cbind(variable, bonWilcox[,2:4] < 0.05))
+bonWilcox05
+```
+
+With these adjustments we find that all our p-values are below `0.05` thus the __null hypothesis is rejected__ for all tests.
 
 
 
