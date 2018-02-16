@@ -671,7 +671,20 @@ ttestBonferroni$`c Bonferroni` <- p.adjust(ttest$c, method = "bonferroni", n = 6
 ```
 
 ```{r}
+wilcoxBonferroni2 <- data.frame()
+ttestBonferroni2 <- data.frame()
 
+for (i in 1:length(variable)){
+  # Bonferroni Wilcox results
+  wilcoxBonferroni2 <- rbind(wilcoxBonferroni2, cbind(variable[i], questionA_wilcox(variable[i], 0.05, 60-sum(is.na(wilcox$a))), questionB_wilcox(variable[i], 0.05, 60-sum(is.na(wilcox$b))), questionC_wilcox(variable[i], 0.05, 60-sum(is.na(wilcox$c)))))
+  # Bonferroni t-test results
+  ttestBonferroni2 <- rbind(ttestBonferroni2, cbind(variable[i], questionA_ttest(variable[i], 0.05, 60-sum(is.na(ttest$a))), questionB_ttest(variable[i], 0.05, 60-sum(is.na(ttest$b))), questionC_ttest(variable[i], 0.05, 60-sum(is.na(ttest$c)))))
+}
+
+colnames(wilcoxBonferroni2) <- c('variable', 'a Bonferroni', 'b Bonferroni', 'c Bonferroni')
+colnames(wilcoxBonferroni2) <- c('variable', 'a Bonferroni', 'b Bonferroni', 'c Bonferroni')
+
+View(wilcoxBonferroni2)
 ```
 
 
